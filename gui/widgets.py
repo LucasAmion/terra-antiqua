@@ -227,7 +227,7 @@ class TaSpinBox(QtWidgets.QWidget):
         self.layout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
         self.setLayout(self.layout)
         self.dataType = None
-        self.spinBox.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.spinBox.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.initOverrideButton("generalProperty", "Blank property")
 
     def initOverrideButton(self, property_name, property_descr, layer=None):
@@ -287,9 +287,9 @@ class TaCheckBox(QtWidgets.QCheckBox):
         self.default_checked_state = None
 
     def changeEvent(self, event):
-        if event.type() == QtCore.QEvent.EnabledChange and not self.isEnabled():
+        if event.type() == QtCore.QEvent.Type.EnabledChange and not self.isEnabled():
             self.setChecked(False)
-        if event.type() == QtCore.QEvent.EnabledChange and self.isEnabled():
+        if event.type() == QtCore.QEvent.Type.EnabledChange and self.isEnabled():
             if self.default_checked_state:
                 self.setChecked(self.default_checked_state)
 
@@ -360,21 +360,21 @@ class TaCheckBox(QtWidgets.QCheckBox):
 class TaExpressionWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(TaExpressionWidget, self).__init__(parent)
-        self.layout = QtWidgets.QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         self.lineEdit = QgsFilterLineEdit(self)
         self.overrideButton = QgsPropertyOverrideButton(self)
         self.overrideButton.registerEnabledWidget(self.lineEdit, False)
         self.overrideButton.registerExpressionWidget(self.lineEdit)
-        self.layout.addWidget(self.lineEdit)
-        self.layout.addWidget(self.overrideButton)
-        self.layout.setSpacing(6)
-        self.layout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
-        self.setLayout(self.layout)
+        layout.addWidget(self.lineEdit)
+        layout.addWidget(self.overrideButton)
+        layout.setSpacing(6)
+        layout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
+        self.setLayout(layout)
         self.initOverrideButton("general Property", "Blank Property")
 
     def initOverrideButton(self, property_name, property_descr, layer=None):
         definition = QgsPropertyDefinition(property_name, property_descr,
-                                           QgsPropertyDefinition.String)
+                                           QgsPropertyDefinition.StandardPropertyTemplate.String)
 
         if layer:
             self.overrideButton.registerExpressionContextGenerator(layer)
@@ -383,6 +383,15 @@ class TaExpressionWidget(QtWidgets.QWidget):
         else:
             self.overrideButton.init(0, QgsProperty(), definition)
 
+class TaStringWidget(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super(TaStringWidget, self).__init__(parent)
+        layout = QtWidgets.QHBoxLayout()
+        self.lineEdit = QgsFilterLineEdit(self)
+        layout.addWidget(self.lineEdit)
+        layout.setSpacing(6)
+        layout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
+        self.setLayout(layout)
 
 class TaColorSchemeWidget(QtWidgets.QComboBox):
     def __init__(self, parent=None):

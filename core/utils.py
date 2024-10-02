@@ -10,20 +10,12 @@ import tempfile
 import os
 import time
 
-
 import numpy as np
 from numpy import * #This to import math functions to be used in formula (modFormula)
-import subprocess
 import random
 from random import randrange
 from typing import Tuple, Union
 from .logger import TaFeedback
-from qgis.gui import QgsMessageBar
-try:
-    from scipy.ndimage.filters import gaussian_filter, uniform_filter
-except Exception:
-    install_package('scipy')
-    from scipy.ndimage.filters import gaussian_filter, uniform_filter
 
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QVariant, QThread, QObject, pyqtSignal
@@ -50,7 +42,6 @@ from qgis.core import (
     QgsFeatureIterator,
     QgsFields,
     NULL,
-    QgsMapLayer,
     QgsMapLayerType,
     QgsCategorizedSymbolRenderer,
     QgsSymbol,
@@ -61,36 +52,17 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsSimpleFillSymbolLayer,
     QgsProcessingException
-
 )
-from osgeo import gdal, osr, ogr, gdalconst
-from PyQt5.QtCore import QVariant, QThread, QObject, pyqtSignal
-from PyQt5.QtGui import QColor
-import sys
-import tempfile
-import os
-import time
 
-
-import numpy as np
-# This to import math functions to be used in formula (modFormula)
-from numpy import *
-import subprocess
-import random
-from random import randrange
-from typing import Tuple, Union
-
-
+import pip
 def install_package(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
+    pip.main(['install', package])
 
 try:
     from scipy.ndimage.filters import gaussian_filter, uniform_filter
 except Exception:
     install_package('scipy')
     from scipy.ndimage.filters import gaussian_filter, uniform_filter
-
 
 try:
     from plugins import processing
@@ -639,7 +611,7 @@ def setVectorSymbology(in_layer):
     assert layer.type() == QgsMapLayerType.VectorLayer, "The input layer must be of type QgsVectorLayer."
     if not layer.isValid():
         raise Exception("The input vector layer is not valid.")
-    list_of_fields = ['Category', 'Id', 'ID', 'iD', 'id', 'Fid', 'FID', 'fid']
+    list_of_fields = ['Category', 'Id', 'ID', 'iD', 'id', 'Fid', 'FID', 'fid', 'FEATURE_ID']
     fni = -1
     for f in list_of_fields:
         if not fni == -1:

@@ -70,7 +70,7 @@ class TaAlgorithmProvider:
     def add_result(self, output_path):
         file_name = os.path.splitext(os.path.basename(output_path))[0]
         ext = os.path.splitext(os.path.basename(output_path))[1]
-        if ext == '.tif' or ext == '.tiff':
+        if ext == '.tif' or ext == '.tiff' or ext == '.nc':
             try:
                 layer = self.iface.addRasterLayer(
                     output_path, file_name, "gdal")
@@ -80,17 +80,16 @@ class TaAlgorithmProvider:
             layer = self.iface.addVectorLayer(output_path, file_name, "ogr")
 
         if layer:
+            # Adding coordinate sytem if not present
+            if not layer.crs().isValid():
+                layer.setCrs(self.thread.crs)
+            
             # Rendering a symbology style for the resulting raster layer.
-            try:
-                if layer.type() == QgsMapLayerType.RasterLayer:
-                    setRasterSymbology(layer)
-                elif layer.type() == QgsMapLayerType.VectorLayer:
-                    setVectorSymbology(layer)
-            except Exception:
-                if layer.type() == QgsMapLayer.LayerType.RasterLayer:
-                    setRasterSymbology(layer)
-                elif layer.type() == QgsMapLayer.LayerType.VectorLayer:
-                    setVectorSymbology(layer)
+            if layer.type() == QgsMapLayerType.RasterLayer:
+                setRasterSymbology(layer)
+            elif layer.type() == QgsMapLayerType.VectorLayer:
+                setVectorSymbology(layer)
+            
             self.thread.feedback.info(
                 "The algorithm finished processing successfully,")
             self.thread.feedback.info(

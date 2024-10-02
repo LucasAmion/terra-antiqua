@@ -48,6 +48,7 @@ from .set_pls import TaSetPaleoshorelines
 from .standard_proc import TaStandardProcessing
 from .modify_tb import TaModifyTopoBathy
 from .remove_arts_tooltip import TaRemoveArtefactsTooltip
+from .reconstruct_rasters import TaReconstructRasters
 from .settings import TaSettings
 from .algorithm_provider import TaAlgorithmProvider, TaRemoveArtefactsAlgProvider
 
@@ -58,9 +59,8 @@ from ..gui.prepare_masks_dlg import  TaPrepareMasksDlg
 from ..gui.set_pls_dlg import  TaSetPaleoshorelinesDlg
 from ..gui.remove_arts_dlg import  TaRemoveArtefactsDlg
 from ..gui.standard_proc_dlg import  TaStandardProcessingDlg
+from ..gui.reconstruct_rasters_dlg import  TaReconstructRastersDlg
 from ..resources import *
-
-
 
 class TerraAntiqua:
 
@@ -109,7 +109,6 @@ class TerraAntiqua:
         # Check if plugin was started the first time in current QGIS session
         # Must be set in initGui() to survive plugin reloads
         self.first_start =None
-
 
     # Create the tool dialog
 
@@ -215,6 +214,12 @@ class TerraAntiqua:
         std_proc_icon = ':/std_proc_icon.png'
         feat_create_icon = ':/feat_create_icon.png'
         remove_arts_icon = ':/remove_arts_icon.png'
+
+        self.add_action(
+            set_pls_icon,
+            text = self.tr(u'Reconstruct Rasters'),
+            callback = self.initReconstructRasters,
+            parent = self.iface.mainWindow())
 
         self.add_action(
             compile_tb_icon,
@@ -330,6 +335,14 @@ class TerraAntiqua:
                                                       self.settings)
         self.createTopoBathy.load()
 
+    def initReconstructRasters(self):
+        """Initializes the Reconstruct rasters algorithm and loads it"""
+        self.reconstructRasters = TaAlgorithmProvider(TaReconstructRastersDlg,
+                                                      TaReconstructRasters,
+                                                      self.iface,
+                                                      self.settings)
+        self.reconstructRasters.load()
+    
     def initRemoveArtefacts(self):
         """Initializes the Remove artefacts algorithm and activates it"""
         if self.settings.removeArtefactsChecked:
@@ -339,10 +352,3 @@ class TerraAntiqua:
             self.settings.removeArtefactsChecked = True
             self.removeArtefacts = TaRemoveArtefactsAlgProvider(TaRemoveArtefactsTooltip, TaRemoveArtefactsDlg, self.iface, self.actions, self.settings)
             self.removeArtefacts.initiate()
-
-
-
-
-
-
-

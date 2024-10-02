@@ -5,11 +5,11 @@
 
 # -*- coding: utf-8 -*-
 import os
-from PyQt5 import QtWidgets, QtCore, Qt
-from qgis.core import QgsMapLayerProxyModel, QgsProject, QgsRasterLayer
+from PyQt5 import QtWidgets, QtCore
+from qgis.core import QgsMapLayerProxyModel, QgsProject, QgsRasterLayer, Qgis
 from qgis.gui import (
     QgsMapLayerComboBox,
-    QgsDoubleSpinBox
+    QgsDoubleSpinBox, QgsGroupBoxCollapseButton
 )
 from .base_dialog import TaBaseDialog
 from .widgets import (
@@ -43,8 +43,8 @@ class TaCompileTopoBathyDlg(TaBaseDialog):
        self.tableWidget.insertColumn(1)
        self.tableWidget.setHorizontalHeaderLabels(["Input layer", ""])
        header = self.tableWidget.horizontalHeader()
-       header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-       header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+       header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+       header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
        self.tableWidget.setMinimumHeight(200)
        self.addRow(0)
 
@@ -61,28 +61,26 @@ class TaCompileTopoBathyDlg(TaBaseDialog):
        self.bufferDistanceForRemoveOverlapBath = self.addAdvancedParameter(QgsDoubleSpinBox, "Buffer distance (In map units):")
 
        self.maskComboBox.layerChanged.connect(self.onLayerChange)
-       self.maskComboBox.setFilters(QgsMapLayerProxyModel.PolygonLayer)
+       self.maskComboBox.setFilters(Qgis.LayerFilter.RasterLayer)
        self.removeOverlapBathyCheckBox.registerEnabledWidgets([self.maskComboBox,
                                                                self.bufferDistanceForRemoveOverlapBath])
        self.removeOverlapBathyCheckBox.stateChanged.connect(self.onRemoveOverlapCheckBoxStateChange)
        self.selectedFeaturesCheckBox.registerLinkedWidget(self.maskComboBox)
        self.bufferDistanceForRemoveOverlapBath.setValue(0.5)
 
-
-
     def addRow(self, row):
         if not row:
             row = self.tableWidget.rowCount()
         self.tableWidget.insertRow(row)
         self.tableWidget.setCellWidget(row, 0, QgsMapLayerComboBox(self))
-        self.tableWidget.setCellWidget(row,1, QtWidgets.QToolButton(self))
+        self.tableWidget.setCellWidget(row, 1, QgsGroupBoxCollapseButton(self))
         if self.tableWidget.columnCount()>2:
             checkBoxWidget = QtWidgets.QWidget()
             checkBox = TaCheckBox('')
             checkBox.setObjectName("apply_mask_checkbox")
             layout = QtWidgets.QHBoxLayout(checkBoxWidget)
             layout.addWidget(checkBox)
-            layout.setAlignment(QtCore.Qt.AlignCenter)
+            layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             layout.setContentsMargins(0,0,0,0)
             self.tableWidget.setCellWidget(row, 2,checkBoxWidget)
         btn = self.tableWidget.cellWidget(row, 1)
@@ -121,14 +119,14 @@ class TaCompileTopoBathyDlg(TaBaseDialog):
         self.tableWidget.insertColumn(2)
         self.tableWidget.setHorizontalHeaderLabels(["Input layer", "", "Apply mask"])
         header = self.tableWidget.horizontalHeader()
-        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         for i in range(self.tableWidget.rowCount()):
             checkBoxWidget = QtWidgets.QWidget()
             checkBox = TaCheckBox('')
             checkBox.setObjectName("apply_mask_checkbox")
             layout = QtWidgets.QHBoxLayout(checkBoxWidget)
             layout.addWidget(checkBox)
-            layout.setAlignment(QtCore.Qt.AlignCenter)
+            layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             layout.setContentsMargins(0,0,0,0)
             self.tableWidget.setCellWidget(i, 2,checkBoxWidget)
 
@@ -139,10 +137,10 @@ class TaCompileTopoBathyDlg(TaBaseDialog):
         elif not layer and self.tableWidget.columnCount()>2:
             self.tableWidget.removeColumn(2)
             header = self.tableWidget.horizontalHeader()
-            header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+            header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
 
     def onRemoveOverlapCheckBoxStateChange(self, state):
-        if state == QtCore.Qt.Checked:
+        if state == QtCore.Qt.CheckState.Checked:
             self.maskComboBox.setLayer(self.maskComboBox.layer(1))
         else:
             self.maskComboBox.setLayer(self.maskComboBox.layer(0))

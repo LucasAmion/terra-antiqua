@@ -185,6 +185,7 @@ class TaBaseAlgorithm(QThread):
         self.killed = True
         self.feedback.setCanceled(True)
         self.progress_count = 0
+        self.dlg.cancelEvent()
 
     def startOver(self):
         self.killed = False

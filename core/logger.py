@@ -69,11 +69,11 @@ class TaFeedback(QtCore.QObject):
             for handler in self.logger.handlers:
                 self.logger.removeHandler(handler)
 
-        handler = TaLogHandler()
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt='%I:%M:%S'))
+        self.log_handler = TaLogHandler()
+        self.log_handler.setLevel(logging.DEBUG)
+        self.log_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt='%I:%M:%S'))
         #handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt='%Y-%m-%d %I:%M:%S'))
-        self.logger.addHandler(handler)
+        self.logger.addHandler(self.log_handler)
         self.logger.setLevel(logging.DEBUG)
         self.progress_count = 0
         TaLogStream.stdout().messageWritten.connect( dlg.logBrowser.textCursor().insertHtml )

@@ -14,5 +14,3 @@ class TaSettings(QSettings):
     def setTempValue(self, key, value):
         self.temporarySettings[key]=value
         self.tempValueChanged.emit(key, value)
-
-

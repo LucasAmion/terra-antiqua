@@ -42,7 +42,7 @@ class TaBaseDialog(TaTemplateDialog):
         self.cancelButton.clicked.connect(self.cancelEvent)
         self.helpButton.clicked.connect(self.openManual)
         self.msgBar = QgsMessageBar(self)
-        self.msgBar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.msgBar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         self.layout().insertWidget(0,self.msgBar)
         self.setKeyboardShortcuts()
 
@@ -174,7 +174,7 @@ class TaBaseDialog(TaTemplateDialog):
         if add_output_path:
             self.outputPath = QgsFileWidget()
             self.outputPathLabel = QLabel('Output file path:')
-            self.outputPath.setStorageMode(self.outputPath.SaveFile)
+            self.outputPath.setStorageMode(QgsFileWidget.StorageMode.SaveFile)
             self.outputPath.setFilter('*.tif;;*.tiff')
             self.paramsLayout.addWidget(self.outputPathLabel)
             self.paramsLayout.addWidget(self.outputPath)
@@ -256,6 +256,7 @@ class TaBaseDialog(TaTemplateDialog):
             'TaCreateTopoBathyDlg': 'Create Topo/Bathymetry',
             'TaRemoveArtefactsDlg': 'Remove Artefacts',
             'TaPrepareMasksDlg': 'Prepare Masks',
+            'TaReconstructRastersDlg': 'Reconstruct Rasters',
             'TaStandardProcessingDlg': 'Standard Processing'
             }
 
@@ -286,6 +287,7 @@ class TaBaseDialog(TaTemplateDialog):
                 ('TaIsostaticCompensation', 'isostat_cp'),
                 ('TaSetSeaLevel', 'set_sl'),
                 ('TaCalculateBathymetry', 'calc_bathy'),
+                ('TaReconstructRastersDlg', 'reconstruct_rasters'),
                 ('TaChangeMapSymbology', 'change_symbology')
                 ]
         for class_name, file_name in files:
@@ -317,7 +319,6 @@ class TaBaseDialog(TaTemplateDialog):
                 else:
                     outFilePath = os.path.join('...', f_path)
                     break
-
 
         self.outputPath.lineEdit().setPlaceholderText(f"{outFilePath}")
 
@@ -368,6 +369,6 @@ class TaBaseDialog(TaTemplateDialog):
     def setKeyboardShortcuts(self):
         self.shortcuts = {}
         self.shortcuts["Run"] = QShortcut(self)
-        self.shortcuts["Run"].setContext(QtCore.Qt.ApplicationShortcut)
-        self.shortcuts["Run"].setKey(QtCore.Qt.Key_Enter)
+        self.shortcuts["Run"].setContext(QtCore.Qt.ShortcutContext.ApplicationShortcut)
+        self.shortcuts["Run"].setKey(QtCore.Qt.Key.Key_Enter)
         self.shortcuts["Run"].activated.connect(self.runButton.click)

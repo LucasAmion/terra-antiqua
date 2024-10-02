@@ -16,10 +16,10 @@ class TaTemplateDialog(QtWidgets.QDialog):
 
         self.setGeometry(200, 200, 900, 600)
         self.tabWidget =QtWidgets.QTabWidget(self)
-        self.tabWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.tabWidget.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
 
         self.paramsScrollArea = QtWidgets.QScrollArea()
-        self.paramsScrollArea.setAlignment(QtCore.Qt.AlignTop)
+        self.paramsScrollArea.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
         self.paramsScrollArea.setWidgetResizable(True)
         self.paramsWidget = QtWidgets.QWidget()
         self.paramsLayout = QtWidgets.QVBoxLayout()
@@ -31,7 +31,7 @@ class TaTemplateDialog(QtWidgets.QDialog):
         self.logBrowser.setOpenExternalLinks(True)
         self.tabWidget.addTab(self.logBrowser, 'Log')
         self.helpTextBox = TaHelpBrowser(self)
-        self.helpTextBox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        self.helpTextBox.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Expanding)
         try:
             self.helpTextBox.placeholderText = "Your log will be shown here."
         except:
@@ -42,8 +42,8 @@ class TaTemplateDialog(QtWidgets.QDialog):
         self.collapseButton.setIcon(self.iconRight)
         self.collapseButton.setIconSize(QtCore.QSize(8,8))
         self.collapseButton.setAutoRaise(True)
-        self.tabWidget.setCornerWidget(self.collapseButton, QtCore.Qt.TopRightCorner)
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.tabWidget.setCornerWidget(self.collapseButton, QtCore.Qt.Corner.TopRightCorner)
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
         self.splitter.addWidget(self.tabWidget)
         self.splitter.addWidget(self.helpTextBox)
         self.splitter.setStretchFactor(0, 1)
