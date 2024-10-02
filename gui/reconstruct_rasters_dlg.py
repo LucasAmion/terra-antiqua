@@ -24,6 +24,10 @@ class TaReconstructRastersDlg(TaBaseDialog):
             QtWidgets.QComboBox,
             "Name of rotation model:")
         self.modelName.addItems(self.model_list)
+        self.rasterType = self.addMandatoryParameter(
+            QtWidgets.QComboBox,
+            "Type of raster to reconstruct:")
+        self.rasterType.addItems(['Topography', 'Bathymetry'])
         self.years = self.addMandatoryParameter(
             TaSpinBox,
             "Years ago (Ma):")
