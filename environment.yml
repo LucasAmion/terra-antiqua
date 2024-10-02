@@ -1,0 +1,17 @@
+name: terra-antiqua
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  - numpy
+  - xarray
+  - scikit-image
+  - astropy-healpix
+  - gmt
+  - qgis
+  - gplately
+  - pygplates
+  - pip
+  - pip:
+    - PlateTectonicTools
+    - git+https://github.com/siwill22/GPlatesReconstructionModel
