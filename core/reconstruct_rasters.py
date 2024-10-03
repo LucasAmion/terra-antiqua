@@ -8,7 +8,7 @@ from qgis.core import (
 )
 from .base_algorithm import TaBaseAlgorithm
 
-from ..agegrid.run_paleo_age_grids import run_paleo_age_grids
+from agegrid.run_paleo_age_grids import run_paleo_age_grids
 
 from plate_model_manager import PlateModelManager, PresentDayRasterManager
 import gplately

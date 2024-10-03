@@ -15,3 +15,4 @@ dependencies:
   - pip:
     - PlateTectonicTools
     - git+https://github.com/siwill22/GPlatesReconstructionModel
+    - git+https://github.com/LucasAmion/agegrid.git 
