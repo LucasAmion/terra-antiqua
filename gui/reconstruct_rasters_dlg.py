@@ -9,7 +9,7 @@ from plate_model_manager import PlateModelManager
 
 class TaReconstructRastersDlg(TaBaseDialog):
     pm_manager = PlateModelManager()
-    model_list = pm_manager.get_available_model_names()[1:]       
+    model_list = pm_manager.get_available_model_names()[1:]
         
     def __init__(self, parent = None):
         """Constructor."""
@@ -36,4 +36,3 @@ class TaReconstructRastersDlg(TaBaseDialog):
 
         # Fill the parameters' tab of the Dialog with the defined parameters
         self.fillDialog()
-
