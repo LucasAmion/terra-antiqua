@@ -80,15 +80,16 @@ class TaReconstructRasters(TaBaseAlgorithm):
             self.feedback.progress += 20
             
             # Reconstructing raster to desired age
-            self.feedback.info("Starting reconstruction...")
-            etopo_nc.plate_reconstruction = model
-            reconstructed = etopo_nc.reconstruct(years, threads=4)
-            self.feedback.info("Reconstruction finished.")
+            if years > 0:
+                self.feedback.info("Starting reconstruction...")
+                etopo_nc.plate_reconstruction = model
+                etopo_nc.reconstruct(years, threads=4, inplace=True)
+                self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
             
             # Saving result
             path = os.path.join(self.temp_dir, f"ETOPO_{model_name}_{years}Ma.nc")
-            reconstructed.save_to_netcdf4(path)
+            etopo_nc.save_to_netcdf4(path)
             
         elif raster_type == 'Bathymetry':
             path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{years}.0Ma.nc")
