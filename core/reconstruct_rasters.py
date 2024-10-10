@@ -23,7 +23,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
 
     def run(self):
         pm_manager = PlateModelManager()
-        raster_manager = PresentDayRasterManager()
+        raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
         project_path = QgsProject.instance().readPath("./")
         raster_manager.set_data_dir(os.path.join(project_path, "data"))
         
