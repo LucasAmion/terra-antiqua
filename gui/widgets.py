@@ -383,16 +383,6 @@ class TaExpressionWidget(QtWidgets.QWidget):
         else:
             self.overrideButton.init(0, QgsProperty(), definition)
 
-class TaStringWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None):
-        super(TaStringWidget, self).__init__(parent)
-        layout = QtWidgets.QHBoxLayout()
-        self.lineEdit = QgsFilterLineEdit(self)
-        layout.addWidget(self.lineEdit)
-        layout.setSpacing(6)
-        layout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
-        self.setLayout(layout)
-
 class TaColorSchemeWidget(QtWidgets.QComboBox):
     def __init__(self, parent=None):
         super().__init__(parent)
