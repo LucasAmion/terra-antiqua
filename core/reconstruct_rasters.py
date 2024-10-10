@@ -20,6 +20,12 @@ class TaReconstructRasters(TaBaseAlgorithm):
     def __init__(self, dlg):
         super().__init__(dlg)
         self.remove_overlap = None
+        self.available_rasters = {
+            0: "etopo_ice_60",
+            1: "etopo_ice_30",
+            2: "etopo_bed_60",
+            3: "etopo_bed_30"
+        } 
 
     def run(self):
         pm_manager = PlateModelManager()
@@ -31,6 +37,10 @@ class TaReconstructRasters(TaBaseAlgorithm):
         model_name = self.dlg.modelName.currentText()
         raster_type = self.dlg.rasterType.currentText()
         years = self.dlg.years.spinBox.value()
+        rasterIdx = self.dlg.startingRaster.currentIndex()
+        resampling = self.dlg.resampling.isChecked()
+        resolution = self.dlg.resolution.value()
+        interpolationMethod = self.dlg.interpolationMethod.currentIndex()
         
         # Forwarding logs from pmm
         pmm_logger = logging.getLogger('pmm')
@@ -55,7 +65,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
         
         if raster_type == 'Topography':
             self.feedback.info("Downloading present day topography raster...")
-            data = raster_manager.get_raster("topography")
+            data = raster_manager.get_raster(self.available_rasters[rasterIdx])
             etopo_nc = gplately.Raster(data=data, plate_reconstruction=model)
             self.feedback.progress += 10
             
@@ -63,11 +73,12 @@ class TaReconstructRasters(TaBaseAlgorithm):
             pmm_logger.removeHandler(self.feedback.log_handler)
 
             # Resampling to a more manageable size
-            self.feedback.info("Resampling...")
             etopo_nc._data = etopo_nc._data.astype(float)
-            etopo_nc.resample(0.5, 0.5, inplace=True)
+            if resampling == True:
+                self.feedback.info("Resampling...")
+                etopo_nc.resample(resolution, resolution, method=interpolationMethod, inplace=True)
             self.feedback.progress += 20
-
+            
             # Reconstructing raster to desired age
             self.feedback.info("Starting reconstruction...")
             etopo_nc.plate_reconstruction = model
