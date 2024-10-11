@@ -36,10 +36,10 @@ class TaReconstructRasters(TaBaseAlgorithm):
         # Obtaining input from dialog
         model_name = self.dlg.modelName.currentText()
         raster_type = self.dlg.rasterType.currentText()
-        years = self.dlg.years.spinBox.value()
+        reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
         rasterIdx = self.dlg.startingRaster.currentIndex()
         resampling = self.dlg.resampling.isChecked()
-        resolution = self.dlg.resolution.value()
+        resampling_resolution = self.dlg.resampling_resolution.value()
         interpolationMethod = self.dlg.interpolationMethod.currentIndex()
         
         # Forwarding logs from pmm
@@ -76,25 +76,25 @@ class TaReconstructRasters(TaBaseAlgorithm):
             etopo_nc._data = etopo_nc._data.astype(float)
             if resampling == True:
                 self.feedback.info("Resampling...")
-                etopo_nc.resample(resolution, resolution, method=interpolationMethod, inplace=True)
+                etopo_nc.resample(resampling_resolution, resampling_resolution, method=interpolationMethod, inplace=True)
             self.feedback.progress += 20
             
             # Reconstructing raster to desired age
-            if years > 0:
+            if reconstruction_time > 0:
                 self.feedback.info("Starting reconstruction...")
                 etopo_nc.plate_reconstruction = model
-                etopo_nc.reconstruct(years, threads=4, inplace=True)
+                etopo_nc.reconstruct(reconstruction_time, threads=4, inplace=True)
                 self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
             
             # Saving result
-            path = os.path.join(self.temp_dir, f"ETOPO_{model_name}_{years}Ma.nc")
+            path = os.path.join(self.temp_dir, f"ETOPO_{model_name}_{reconstruction_time}Ma.nc")
             etopo_nc.save_to_netcdf4(path)
             
         elif raster_type == 'Bathymetry':
-            path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{years}.0Ma.nc")
+            path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{reconstruction_time}.0Ma.nc")
             self.feedback.info("Starting reconstruction...")
-            run_paleo_age_grids(model_name, years, project_path, self.feedback)
+            run_paleo_age_grids(model_name, reconstruction_time, project_path, self.feedback)
             self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
             

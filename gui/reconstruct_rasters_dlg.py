@@ -3,8 +3,8 @@
 #Full copyright notice in file: terra_antiqua.py
 
 from PyQt5.QtWidgets import QComboBox
-from .base_dialog import TaBaseDialog
 from qgis.gui import QgsDoubleSpinBox
+from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaCheckBox
 from plate_model_manager import PlateModelManager
 
@@ -32,21 +32,21 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.modelName.addItems(self.model_list)
         self.modelName.setStyleSheet("combobox-popup: 0;")
         
-        # Years ago:
-        self.years = self.addMandatoryParameter(TaSpinBox, "Years ago (Ma):")
-        self.years.setDataType("integer")
-        self.years.initOverrideButton("Years", "Time to go back in millions of years.")
-        
         # Topography specific parameters:
-        ## Starting raster:
-        self.startingRaster = self.addVariantParameter(QComboBox,
-                                                  "Topography",
-                                                  "Starting raster:")
-        self.startingRaster.setMaxVisibleItems(10)
-        self.startingRaster.addItems(['ETOPO Ice surface elevation (60 arc seconds)',
-                                      'ETOPO Ice surface elevation (30 arc seconds)',
-                                      'ETOPO Bedrock elevation (60 arc seconds)',
-                                      'ETOPO Bedrock elevation (30 arc seconds)'])
+        ## Input raster:
+        self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
+                                                    "Input raster:",
+                                                    mandatory=True)
+        self.inputRaster.addItems(['ETOPO Ice surface elevation (60 arc seconds)',
+                                   'ETOPO Ice surface elevation (30 arc seconds)',
+                                   'ETOPO Bedrock elevation (60 arc seconds)',
+                                   'ETOPO Bedrock elevation (30 arc seconds)'])
+        self.inputRaster.setMaxVisibleItems(10)
+        
+        ## Reconstruction time:
+        self.reconstruction_time = self.addVariantParameter(TaSpinBox, "Topography",
+                                                            "Reconstruction time (in Ma):")
+        self.reconstruction_time.setDataType("integer")
         
         ## Resampling:
         self.resampling = self.addVariantParameter(TaCheckBox,
@@ -55,21 +55,78 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.resampling.setChecked(True)
          
         ## Resampling Resolution:
-        self.resolution = self.addVariantParameter(QgsDoubleSpinBox,
+        self.resampling_resolution = self.addVariantParameter(QgsDoubleSpinBox,
                                                    "Topography",
                                                    "Resampling resolution (in arc degrees):")
-        self.resolution.setValue(0.5)
+        self.resampling_resolution.setValue(0.5)
                 
         ## Interpolation method:
-        self.interpolationMethod = self.addAdvancedParameter(QComboBox, 
-                                                             variant_index="Topography",
-                                                             label="Interpolation method:")
+        self.interpolationMethod = self.addAdvancedParameter(QComboBox,
+                                                             "Interpolation method:",
+                                                             variant_index="Topography")
         self.interpolationMethod.addItems(['linear',
                                            'square',
                                            'cubic',
                                            '4th degree',
                                            '5th degree'])
-        self.resampling.registerEnabledWidgets([self.resolution, self.interpolationMethod])
+        self.resampling.registerEnabledWidgets([self.resampling_resolution, self.interpolationMethod])
+        
+        # Bathymetry specific parameters:
+        ## Starting time:
+        self.startTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
+                                                       "Start Time (in Ma)",
+                                                       mandatory=True)
+        self.startTime.setDataType("integer")
+        
+        ## End time
+        self.endTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
+                                                     "End Time (in Ma)",
+                                                     mandatory=True)
+        self.endTime.setDataType("integer")
+        
+        ## Time Step
+        self.timeStep = self.addVariantParameter(TaSpinBox, "Bathymetry",
+                                                 "Time step (in Ma)",
+                                                 mandatory=True)
+        self.timeStep.setDataType("integer")
+        
+        # Spatial Resolution
+        self.resolution = self.addVariantParameter(QgsDoubleSpinBox,
+                                                   "Bathymetry",
+                                                   "Spacial resolution (in arc degrees):",
+                                                   mandatory=True)
+        self.resolution.setValue(0.5)
+        
+        # Extent
+        self.minlat = self.addAdvancedParameter(QgsDoubleSpinBox,
+                                                "Minimum latitude (in arc degrees):")
+        self.minlat.setMinimum(-180)
+        self.minlat.setMaximum(180)
+        self.minlat.setValue(-180)
+        
+        self.maxlat = self.addAdvancedParameter(QgsDoubleSpinBox,
+                                                "Maximum latitude (in arc degrees):")
+        self.maxlat.setMinimum(-180)
+        self.maxlat.setMaximum(180)
+        self.maxlat.setValue(180)
+        
+        self.minlon = self.addAdvancedParameter(QgsDoubleSpinBox,
+                                                "Minimum longitude (in arc degrees):")
+        self.minlon.setMinimum(-90)
+        self.minlon.setMaximum(90)
+        self.minlon.setValue(-90)
+        
+        self.maxlon = self.addAdvancedParameter(QgsDoubleSpinBox,
+                                                "Maximum longitude (in arc degrees):")
+        self.maxlon.setMinimum(-90)
+        self.maxlon.setMaximum(90)
+        self.maxlon.setValue(90)
+        
+        # Threads
+        self.threads = self.addAdvancedParameter(TaSpinBox,
+                                                 "Number of threads to use during reconstruction:")
+        self.threads.spinBox.setMinimum(1)
+        
         
         # Fill the parameters' tab of the Dialog with the defined parameters
         self.fillDialog()
