@@ -37,7 +37,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
         model_name = self.dlg.modelName.currentText()
         raster_type = self.dlg.rasterType.currentText()
         reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
-        rasterIdx = self.dlg.startingRaster.currentIndex()
+        rasterIdx = self.dlg.inputRaster.currentIndex()
         resampling = self.dlg.resampling.isChecked()
         resampling_resolution = self.dlg.resampling_resolution.value()
         interpolationMethod = self.dlg.interpolationMethod.currentIndex()

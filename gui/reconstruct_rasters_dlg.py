@@ -98,29 +98,29 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.resolution.setValue(0.5)
         
         # Extent
-        self.minlat = self.addAdvancedParameter(QgsDoubleSpinBox,
-                                                "Minimum latitude (in arc degrees):")
-        self.minlat.setMinimum(-180)
-        self.minlat.setMaximum(180)
-        self.minlat.setValue(-180)
-        
-        self.maxlat = self.addAdvancedParameter(QgsDoubleSpinBox,
-                                                "Maximum latitude (in arc degrees):")
-        self.maxlat.setMinimum(-180)
-        self.maxlat.setMaximum(180)
-        self.maxlat.setValue(180)
-        
         self.minlon = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Minimum longitude (in arc degrees):")
-        self.minlon.setMinimum(-90)
-        self.minlon.setMaximum(90)
-        self.minlon.setValue(-90)
+        self.minlon.setMinimum(-180)
+        self.minlon.setMaximum(180)
+        self.minlon.setValue(-180)
         
         self.maxlon = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Maximum longitude (in arc degrees):")
-        self.maxlon.setMinimum(-90)
-        self.maxlon.setMaximum(90)
-        self.maxlon.setValue(90)
+        self.maxlon.setMinimum(-180)
+        self.maxlon.setMaximum(180)
+        self.maxlon.setValue(180)
+        
+        self.minlat = self.addAdvancedParameter(QgsDoubleSpinBox,
+                                                "Minimum latitude (in arc degrees):")
+        self.minlat.setMinimum(-90)
+        self.minlat.setMaximum(90)
+        self.minlat.setValue(-90)
+        
+        self.maxlat = self.addAdvancedParameter(QgsDoubleSpinBox,
+                                                "Maximum latitude (in arc degrees):")
+        self.maxlat.setMinimum(-90)
+        self.maxlat.setMaximum(90)
+        self.maxlat.setValue(90)
         
         # Threads
         self.threads = self.addAdvancedParameter(TaSpinBox,
