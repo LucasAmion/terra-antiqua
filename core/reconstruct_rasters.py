@@ -94,7 +94,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
         elif raster_type == 'Bathymetry':
             path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{years}.0Ma.nc")
             self.feedback.info("Starting reconstruction...")
-            run_paleo_age_grids(model_name, years, project_path)
+            run_paleo_age_grids(model_name, years, project_path, self.feedback)
             self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
             
