@@ -36,7 +36,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         ## Input raster:
         self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
                                                     "Input raster:",
-                                                    mandatory=True)
+                                                    )
         self.inputRaster.addItems(['ETOPO Ice surface elevation (60 arc seconds)',
                                    'ETOPO Ice surface elevation (30 arc seconds)',
                                    'ETOPO Bedrock elevation (60 arc seconds)',
@@ -74,27 +74,24 @@ class TaReconstructRastersDlg(TaBaseDialog):
         # Bathymetry specific parameters:
         ## Starting time:
         self.startTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
-                                                       "Start Time (in Ma)",
-                                                       mandatory=True)
+                                                  "Start Time (in Ma)")
         self.startTime.setDataType("integer")
         
         ## End time
         self.endTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
-                                                     "End Time (in Ma)",
-                                                     mandatory=True)
+                                                "End Time (in Ma)")
         self.endTime.setDataType("integer")
         
         ## Time Step
         self.timeStep = self.addVariantParameter(TaSpinBox, "Bathymetry",
-                                                 "Time step (in Ma)",
-                                                 mandatory=True)
+                                                 "Time step (in Ma)")
         self.timeStep.setDataType("integer")
+        self.timeStep.spinBox.setMinimum(1)
         
         # Spatial Resolution
         self.resolution = self.addVariantParameter(QgsDoubleSpinBox,
                                                    "Bathymetry",
-                                                   "Spacial resolution (in arc degrees):",
-                                                   mandatory=True)
+                                                   "Spacial resolution (in arc degrees):")
         self.resolution.setValue(0.5)
         
         # Extent

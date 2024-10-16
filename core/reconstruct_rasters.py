@@ -11,6 +11,7 @@ from .base_algorithm import TaBaseAlgorithm
 from agegrid.run_paleo_age_grids import run_paleo_age_grids
 
 from plate_model_manager import PlateModelManager, PresentDayRasterManager
+import numpy as np
 import gplately
 import logging
 import os
@@ -36,11 +37,22 @@ class TaReconstructRasters(TaBaseAlgorithm):
         # Obtaining input from dialog
         model_name = self.dlg.modelName.currentText()
         raster_type = self.dlg.rasterType.currentText()
-        reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
-        rasterIdx = self.dlg.inputRaster.currentIndex()
-        resampling = self.dlg.resampling.isChecked()
-        resampling_resolution = self.dlg.resampling_resolution.value()
-        interpolationMethod = self.dlg.interpolationMethod.currentIndex()
+        if raster_type == "Topography":
+            reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
+            rasterIdx = self.dlg.inputRaster.currentIndex()
+            resampling = self.dlg.resampling.isChecked()
+            resampling_resolution = self.dlg.resampling_resolution.value()
+            interpolationMethod = self.dlg.interpolationMethod.currentIndex()
+        if raster_type == "Bathymetry":
+            start_time = self.dlg.startTime.spinBox.value()
+            end_time = self.dlg.endTime.spinBox.value()
+            time_step = self.dlg.timeStep.spinBox.value()
+            resolution = self.dlg.resolution.value()
+        minlon = self.dlg.minlon.value()
+        maxlon = self.dlg.maxlon.value()
+        minlat = self.dlg.minlat.value()
+        maxlat = self.dlg.maxlat.value()
+        threads = self.dlg.threads.spinBox.value()
         
         # Forwarding logs from pmm
         pmm_logger = logging.getLogger('pmm')
@@ -72,7 +84,17 @@ class TaReconstructRasters(TaBaseAlgorithm):
             # Remove pmm logs
             pmm_logger.removeHandler(self.feedback.log_handler)
 
-            # Resampling to a more manageable size
+            # Clip the raster according to the defined extent
+            lon_indices = np.where((etopo_nc.lons >= minlon) & (etopo_nc.lons <= maxlon))[0]
+            lat_indices = np.where((etopo_nc.lats >= minlat) & (etopo_nc.lats <= maxlat))[0]
+            etopo_nc._data = etopo_nc._data[np.min(lat_indices):np.max(lat_indices)+1,
+                                            np.min(lon_indices):np.max(lon_indices)+1]
+            etopo_nc.lons = etopo_nc.lons[np.min(lon_indices):np.max(lon_indices)+1]
+            etopo_nc.lats = etopo_nc.lats[np.min(lat_indices):np.max(lat_indices)+1]
+            self.feedback.info("Raster clipped to the specified bounds.")
+            self.feedback.progress += 10
+
+            # Resampling to desired resolution
             etopo_nc._data = etopo_nc._data.astype(float)
             if resampling == True:
                 self.feedback.info("Resampling...")
@@ -92,9 +114,10 @@ class TaReconstructRasters(TaBaseAlgorithm):
             etopo_nc.save_to_netcdf4(path)
             
         elif raster_type == 'Bathymetry':
-            path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{reconstruction_time}.0Ma.nc")
+            path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
             self.feedback.info("Starting reconstruction...")
-            run_paleo_age_grids(model_name, reconstruction_time, project_path, self.feedback)
+            run_paleo_age_grids(model_name, project_path, self.feedback, start_time, end_time,
+                                time_step, resolution, minlon, maxlon, minlat, maxlat, threads)
             self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
             
