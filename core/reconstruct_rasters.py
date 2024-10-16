@@ -84,16 +84,6 @@ class TaReconstructRasters(TaBaseAlgorithm):
             # Remove pmm logs
             pmm_logger.removeHandler(self.feedback.log_handler)
 
-            # Clip the raster according to the defined extent
-            lon_indices = np.where((etopo_nc.lons >= minlon) & (etopo_nc.lons <= maxlon))[0]
-            lat_indices = np.where((etopo_nc.lats >= minlat) & (etopo_nc.lats <= maxlat))[0]
-            etopo_nc._data = etopo_nc._data[np.min(lat_indices):np.max(lat_indices)+1,
-                                            np.min(lon_indices):np.max(lon_indices)+1]
-            etopo_nc.lons = etopo_nc.lons[np.min(lon_indices):np.max(lon_indices)+1]
-            etopo_nc.lats = etopo_nc.lats[np.min(lat_indices):np.max(lat_indices)+1]
-            self.feedback.info("Raster clipped to the specified bounds.")
-            self.feedback.progress += 10
-
             # Resampling to desired resolution
             etopo_nc._data = etopo_nc._data.astype(float)
             if resampling == True:
@@ -108,6 +98,16 @@ class TaReconstructRasters(TaBaseAlgorithm):
                 etopo_nc.reconstruct(reconstruction_time, threads=4, inplace=True)
                 self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
+            
+            # Clip the raster according to the defined extent
+            lon_indices = np.where((etopo_nc.lons >= minlon) & (etopo_nc.lons <= maxlon))[0]
+            lat_indices = np.where((etopo_nc.lats >= minlat) & (etopo_nc.lats <= maxlat))[0]
+            etopo_nc._data = etopo_nc._data[np.min(lat_indices):np.max(lat_indices)+1,
+                                            np.min(lon_indices):np.max(lon_indices)+1]
+            etopo_nc.lons = etopo_nc.lons[np.min(lon_indices):np.max(lon_indices)+1]
+            etopo_nc.lats = etopo_nc.lats[np.min(lat_indices):np.max(lat_indices)+1]
+            self.feedback.info("Raster clipped to the specified bounds.")
+            self.feedback.progress += 10
             
             # Saving result
             path = os.path.join(self.temp_dir, f"ETOPO_{model_name}_{reconstruction_time}Ma.nc")
