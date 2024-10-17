@@ -7,6 +7,7 @@ dependencies:
   - xarray
   - scikit-image
   - astropy-healpix
+  - appdirs
   - gmt
   - qgis
   - gplately

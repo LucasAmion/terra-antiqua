@@ -4,12 +4,13 @@
 
 from qgis.core import (
     QgsRasterLayer,
-    QgsProject
 )
 from .base_algorithm import TaBaseAlgorithm
+from .utils import exportArrayToGeoTIFF
 
 from agegrid.run_paleo_age_grids import run_paleo_age_grids
 
+from appdirs import user_data_dir
 from plate_model_manager import PlateModelManager, PresentDayRasterManager
 import numpy as np
 import gplately
@@ -29,10 +30,12 @@ class TaReconstructRasters(TaBaseAlgorithm):
         } 
 
     def run(self):
+        data_dir = user_data_dir("QGIS3", "QGIS")
+        model_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "models")
+        raster_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "rasters")
         pm_manager = PlateModelManager()
         raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
-        project_path = QgsProject.instance().readPath("./")
-        raster_manager.set_data_dir(os.path.join(project_path, "data"))
+        raster_manager.set_data_dir(raster_data_dir)
         
         # Obtaining input from dialog
         model_name = self.dlg.modelName.currentText()
@@ -61,7 +64,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
 
         self.feedback.info(f"Downloading {model_name} model...")
         model = pm_manager.get_model(model_name)
-        model.set_data_dir(os.path.join(project_path, "data"))
+        model.set_data_dir(model_data_dir)
 
         rotation_model = model.get_rotation_model()
         self.feedback.progress += 10
@@ -109,17 +112,22 @@ class TaReconstructRasters(TaBaseAlgorithm):
             self.feedback.info("Raster clipped to the specified bounds.")
             self.feedback.progress += 10
             
-            # Saving result
-            path = os.path.join(self.temp_dir, f"ETOPO_{model_name}_{reconstruction_time}Ma.nc")
-            etopo_nc.save_to_netcdf4(path)
+            # Exporting result as GeoTIFF
+            path = os.path.join(self.temp_dir, f"ETOPO_{model_name}_{reconstruction_time}.0Ma.tif")
+            exportArrayToGeoTIFF(path, etopo_nc._data, etopo_nc._lons, etopo_nc._lats, self.crs)
             
         elif raster_type == 'Bathymetry':
-            path = os.path.join(project_path, "data", "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
             self.feedback.info("Starting reconstruction...")
-            run_paleo_age_grids(model_name, project_path, self.feedback, start_time, end_time,
-                                time_step, resolution, minlon, maxlon, minlat, maxlat, threads)
+            run_paleo_age_grids(model_name, model_data_dir, self.temp_dir, self.feedback, start_time,
+                                end_time, time_step, resolution, minlon, maxlon, minlat, maxlat, threads)
             self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
+            
+            # Exporting result as GeoTIFF
+            path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
+            agegrid = gplately.Raster(data=path, plate_reconstruction=model)
+            path = os.path.join(self.temp_dir, f"{model_name}_seafloor_age_mask_{end_time}.0Ma.tif")
+            exportArrayToGeoTIFF(path, agegrid._data, agegrid._lons, agegrid._lats, self.crs)
             
         rlayer = QgsRasterLayer(path, "Temp layer", "gdal")
 

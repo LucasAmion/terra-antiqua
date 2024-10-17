@@ -1409,6 +1409,29 @@ def smoothArrayWithWrapping(input_array: np.ndarray,
 
     return output_array
 
+def exportArrayToGeoTIFF(path, data, lons, lats, crs):
+    driver = gdal.GetDriverByName('GTiff')
+    out_raster = driver.Create(path, lons.size, lats.size, 1, gdal.GDT_Float32)
+
+    # Set geotransform
+    minlon, maxlon = lons[0], lons[-1]
+    minlat, maxlat = lats[0], lats[-1]
+    pixel_width = (maxlon - minlon) / (lons.size - 1)
+    pixel_height = (maxlat - minlat) / (lats.size - 1)
+    geotransform = (minlon, pixel_width, 0, minlat, 0, pixel_height)
+    out_raster.SetGeoTransform(geotransform)
+
+    # Set projection
+    out_raster.SetProjection(crs.toWkt())
+
+    # Write data to band
+    out_band = out_raster.GetRasterBand(1)
+    out_band.WriteArray(data)
+    out_band.SetNoDataValue(np.nan)
+
+    # Close the output dataset and flush changes to disk
+    out_raster = None
+
 
 def loadHelp(dlg):
     # set the help text in the  help box (QTextBrowser)
