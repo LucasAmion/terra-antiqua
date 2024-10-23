@@ -5,7 +5,6 @@
 
 # -*- coding: utf-8 -*-
 
-import sys
 import tempfile
 import os
 import time
@@ -1432,6 +1431,17 @@ def exportArrayToGeoTIFF(path, data, lons, lats, crs):
     # Close the output dataset and flush changes to disk
     out_raster = None
 
+def clipArrayToExtent(raster, extent):
+    minlon, maxlon, minlat, maxlat = extent
+    
+    lon_indices = np.where((raster.lons >= minlon) & (raster.lons <= maxlon))[0]
+    lat_indices = np.where((raster.lats >= minlat) & (raster.lats <= maxlat))[0]
+    
+    raster._data = raster._data[np.min(lat_indices):np.max(lat_indices)+1,
+                                    np.min(lon_indices):np.max(lon_indices)+1]
+    
+    raster.lons = raster.lons[np.min(lon_indices):np.max(lon_indices)+1]
+    raster.lats = raster.lats[np.min(lat_indices):np.max(lat_indices)+1]
 
 def loadHelp(dlg):
     # set the help text in the  help box (QTextBrowser)

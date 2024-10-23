@@ -2,16 +2,13 @@
 # Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 #Full copyright notice in file: terra_antiqua.py
 
-from qgis.core import (
-    QgsRasterLayer,
-)
+from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
-from .utils import exportArrayToGeoTIFF
+from .utils import exportArrayToGeoTIFF, clipArrayToExtent
 from .cache_manager import cache_manager
 
 from agegrid.run_paleo_age_grids import run_paleo_age_grids
 
-import numpy as np
 import gplately
 import os
 
@@ -35,18 +32,23 @@ class TaReconstructRasters(TaBaseAlgorithm):
             end_time = self.dlg.endTime.spinBox.value()
             time_step = self.dlg.timeStep.spinBox.value()
             resolution = self.dlg.resolution.value()
+            
         minlon = self.dlg.minlon.value()
         maxlon = self.dlg.maxlon.value()
         minlat = self.dlg.minlat.value()
         maxlat = self.dlg.maxlat.value()
+        
         n_threads = self.dlg.threads.spinBox.value()
-
-        self.feedback.info(f"Downloading {model_name} model...")
-        rotation_model, topology_features, \
-            static_polygons, cobs = cache_manager.download_model(model_name, self.feedback)
-        model = gplately.PlateReconstruction(rotation_model, topology_features, static_polygons)
         
         if raster_type == 'Topography':
+            if reconstruction_time > 0:
+                self.feedback.info(f"Downloading {model_name} model...")
+                rotation_model, topology_features, static_polygons, cobs = \
+                    cache_manager.download_model(model_name, self.feedback)
+                model = gplately.PlateReconstruction(rotation_model, topology_features, static_polygons)
+            else:
+                model = None
+            
             self.feedback.info("Downloading present day topography raster...")
             data = cache_manager.download_raster(rasterIdx, self.feedback)
             topo_raster = gplately.Raster(data=data, plate_reconstruction=model)
@@ -70,20 +72,20 @@ class TaReconstructRasters(TaBaseAlgorithm):
             self.feedback.progress += 30
             
             # Clip the raster according to the defined extent
-            lon_indices = np.where((topo_raster.lons >= minlon) & (topo_raster.lons <= maxlon))[0]
-            lat_indices = np.where((topo_raster.lats >= minlat) & (topo_raster.lats <= maxlat))[0]
-            topo_raster._data = topo_raster._data[np.min(lat_indices):np.max(lat_indices)+1,
-                                            np.min(lon_indices):np.max(lon_indices)+1]
-            topo_raster.lons = topo_raster.lons[np.min(lon_indices):np.max(lon_indices)+1]
-            topo_raster.lats = topo_raster.lats[np.min(lat_indices):np.max(lat_indices)+1]
-            self.feedback.info("Raster clipped to the specified bounds.")
+            extent = (minlon, maxlon, minlat, maxlat)
+            if extent != (-180, 180, -90, 90):
+                clipArrayToExtent(topo_raster, extent)
+                self.feedback.info("Raster clipped to the specified bounds.")
             self.feedback.progress += 10
             
             # Exporting result as GeoTIFF
-            path = os.path.join(self.temp_dir, f"Topography_{reconstruction_time}_{model_name}.0Ma.tif")
+            path = os.path.join(self.temp_dir, f"Topography_{reconstruction_time}.0Ma_{model_name}.tif")
             exportArrayToGeoTIFF(path, topo_raster._data, topo_raster._lons, topo_raster._lats, self.crs)
             
         elif raster_type == 'Bathymetry':
+            self.feedback.info(f"Downloading {model_name} model...")
+            cache_manager.download_model(model_name, self.feedback)
+            
             self.feedback.info("Starting reconstruction...")
             run_paleo_age_grids(model_name, cache_manager.model_data_dir, self.temp_dir, self.feedback,
                                 start_time, end_time, time_step, resolution, minlon, maxlon,
@@ -93,7 +95,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             
             # Exporting result as GeoTIFF
             path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
-            agegrid = gplately.Raster(data=path, plate_reconstruction=model)
+            agegrid = gplately.Raster(data=path)
             path = os.path.join(self.temp_dir, f"Agegrid_{end_time}.0Ma_{model_name}.tif")
             exportArrayToGeoTIFF(path, agegrid._data, agegrid._lons, agegrid._lats, self.crs)
             
