@@ -216,7 +216,8 @@ class TaBaseDialog(TaTemplateDialog):
             if variant_index and variant_index != index:
                 param.hide()
             else:
-                param.show()
+                if not self.group_box.isCollapsed():
+                    param.show()
                 widgets_to_show+=1
         if widgets_to_show==0:
             self.group_box.hide()
