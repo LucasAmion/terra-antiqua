@@ -6,12 +6,14 @@ from PyQt5.QtWidgets import QComboBox
 from qgis.gui import QgsDoubleSpinBox
 from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaCheckBox
-from plate_model_manager import PlateModelManager
+from ..core.cache_manager import cache_manager
 
 class TaReconstructRastersDlg(TaBaseDialog):
-    pm_manager = PlateModelManager()
-    model_list = pm_manager.get_available_model_names()[1:]
-        
+    topography_model_list = cache_manager.get_available_models(
+        required_layers=["Topologies", "StaticPolygons"])
+    bathymetry_model_list = cache_manager.get_available_models(
+        required_layers=["Topologies", "StaticPolygons", "COBs"])
+    
     def __init__(self, parent = None):
         """Constructor."""
         super(TaReconstructRastersDlg, self).__init__(parent)
@@ -29,8 +31,16 @@ class TaReconstructRastersDlg(TaBaseDialog):
         # Rotation Model:
         self.modelName = self.addMandatoryParameter(QComboBox,
                                                     "Name of rotation model:")
-        self.modelName.addItems(self.model_list)
         self.modelName.setStyleSheet("combobox-popup: 0;")
+        def set_available_models(raster_type):
+            if raster_type == "Topography":
+                self.modelName.clear()
+                self.modelName.addItems(self.topography_model_list)
+            elif raster_type == "Bathymetry":
+                self.modelName.clear()
+                self.modelName.addItems(self.bathymetry_model_list)
+        self.rasterType.currentTextChanged.connect(set_available_models)
+        set_available_models("Topography")
         
         # Topography specific parameters:
         ## Input raster:
@@ -47,6 +57,11 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.reconstruction_time = self.addVariantParameter(TaSpinBox, "Topography",
                                                             "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
+        def set_maximum_reconstruction_time():
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            self.reconstruction_time.spinBox.setMaximum(model_bigtime)
+        set_maximum_reconstruction_time()
+        self.modelName.currentIndexChanged.connect(set_maximum_reconstruction_time)
         
         ## Resampling:
         self.resampling = self.addVariantParameter(TaCheckBox,
@@ -76,11 +91,21 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.startTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
                                                   "Start Time (in Ma)")
         self.startTime.setDataType("integer")
+        self.startTime.spinBox.setMinimum(1)
+        def set_maximum_start_time():
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            self.startTime.spinBox.setMaximum(model_bigtime)
+        set_maximum_start_time()
+        self.modelName.currentIndexChanged.connect(set_maximum_start_time)
         
         ## End time
         self.endTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
                                                 "End Time (in Ma)")
         self.endTime.setDataType("integer")
+        def set_maximum_end_time():
+            self.endTime.spinBox.setMaximum(self.startTime.spinBox.value() - 1)
+        set_maximum_end_time()
+        self.startTime.spinBox.valueChanged.connect(set_maximum_end_time)
         
         ## Time Step
         self.timeStep = self.addVariantParameter(TaSpinBox, "Bathymetry",
@@ -88,7 +113,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.timeStep.setDataType("integer")
         self.timeStep.spinBox.setMinimum(1)
         
-        # Spatial Resolution
+        ## Spatial Resolution
         self.resolution = self.addVariantParameter(QgsDoubleSpinBox,
                                                    "Bathymetry",
                                                    "Spacial resolution (in arc degrees):")
@@ -98,24 +123,30 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.minlon = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Minimum longitude (in arc degrees):")
         self.minlon.setMinimum(-180)
-        self.minlon.setMaximum(180)
+        self.minlon.setMaximum(179)
         self.minlon.setValue(-180)
         
         self.maxlon = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Maximum longitude (in arc degrees):")
-        self.maxlon.setMinimum(-180)
+        def set_minimum_maxlon():
+            self.maxlon.setMinimum(int(self.minlon.value()) + 1)
+        set_minimum_maxlon()
+        self.minlon.valueChanged.connect(set_minimum_maxlon)
         self.maxlon.setMaximum(180)
         self.maxlon.setValue(180)
         
         self.minlat = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Minimum latitude (in arc degrees):")
         self.minlat.setMinimum(-90)
-        self.minlat.setMaximum(90)
+        self.minlat.setMaximum(89)
         self.minlat.setValue(-90)
         
         self.maxlat = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Maximum latitude (in arc degrees):")
-        self.maxlat.setMinimum(-90)
+        def set_minimum_maxlat():
+            self.maxlat.setMinimum(int(self.minlat.value()) + 1)
+        set_minimum_maxlat()
+        self.minlat.valueChanged.connect(set_minimum_maxlat)
         self.maxlat.setMaximum(90)
         self.maxlat.setValue(90)
         
