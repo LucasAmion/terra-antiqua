@@ -7,6 +7,8 @@ from qgis.gui import QgsDoubleSpinBox
 from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaCheckBox
 from ..core.cache_manager import cache_manager
+import tempfile
+import os
 
 class TaReconstructRastersDlg(TaBaseDialog):
     topography_model_list = cache_manager.get_available_models(
@@ -125,6 +127,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                    "Spacial resolution (in arc degrees):")
         self.resolution.setValue(0.5)
         
+        # Advanced Parameters
         # Extent
         self.minlon = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Minimum longitude (in arc degrees):")
@@ -161,8 +164,25 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                  "Number of threads to use during reconstruction:")
         self.threads.spinBox.setMinimum(1)
         
-        
         # Fill the parameters' tab of the Dialog with the defined parameters
         self.fillDialog()
         self.showVariantWidgets(self.rasterType.currentText())
         self.rasterType.currentTextChanged.connect(self.showVariantWidgets)
+        
+        # Update output path when parameters change
+        def update_output_path(_):
+            raster_type = self.rasterType.currentText()
+            if raster_type == "Topography":
+                reconstruction_time = self.reconstruction_time.spinBox.value()
+            elif raster_type == "Bathymetry":
+                reconstruction_time = self.endTime.spinBox.value()
+            model_name = self.modelName.currentText()
+            path = os.path.join(tempfile.gettempdir(),
+                                f"{raster_type}_{reconstruction_time}.0_{model_name}.tif")
+            self.outputPath.lineEdit().setPlaceholderText(path)
+        
+        self.rasterType.currentTextChanged.connect(update_output_path)
+        self.modelName.currentTextChanged.connect(update_output_path)
+        self.reconstruction_time.spinBox.valueChanged.connect(update_output_path)
+        self.endTime.spinBox.valueChanged.connect(update_output_path)
+        self.setDefaultOutFilePath = update_output_path

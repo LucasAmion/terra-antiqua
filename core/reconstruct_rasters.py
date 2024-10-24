@@ -39,6 +39,9 @@ class TaReconstructRasters(TaBaseAlgorithm):
         maxlat = self.dlg.maxlat.value()
         
         n_threads = self.dlg.threads.spinBox.value()
+        output_path = self.dlg.outputPath.filePath()
+        if not output_path:
+            output_path = self.dlg.outputPath.lineEdit().placeholderText()
         
         if raster_type == 'Topography':
             if reconstruction_time > 0:
@@ -79,8 +82,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             self.feedback.progress += 10
             
             # Exporting result as GeoTIFF
-            path = os.path.join(self.temp_dir, f"Topography_{reconstruction_time}.0Ma_{model_name}.tif")
-            exportArrayToGeoTIFF(path, topo_raster._data, topo_raster._lons, topo_raster._lats, self.crs)
+            exportArrayToGeoTIFF(output_path, topo_raster._data, topo_raster._lons, topo_raster._lats, self.crs)
             
         elif raster_type == 'Bathymetry':
             self.feedback.info(f"Downloading {model_name} model...")
@@ -96,15 +98,14 @@ class TaReconstructRasters(TaBaseAlgorithm):
             # Exporting result as GeoTIFF
             path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
             agegrid = gplately.Raster(data=path)
-            path = os.path.join(self.temp_dir, f"Agegrid_{end_time}.0Ma_{model_name}.tif")
-            exportArrayToGeoTIFF(path, agegrid._data, agegrid._lons, agegrid._lats, self.crs)
+            exportArrayToGeoTIFF(output_path, agegrid._data, agegrid._lons, agegrid._lats, self.crs)
             
-        rlayer = QgsRasterLayer(path, "Temp layer", "gdal")
+        rlayer = QgsRasterLayer(output_path, "Temp layer", "gdal")
 
         if not rlayer.isValid():
             self.feedback.error("Layer failed to load!")
             self.kill()
             self.finished.emit(False)
         else:
-            self.finished.emit(True, path)
+            self.finished.emit(True, output_path)
             self.feedback.progress = 100
