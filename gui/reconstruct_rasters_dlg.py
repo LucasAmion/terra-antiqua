@@ -128,7 +128,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.resolution.setValue(0.5)
         
         # Advanced Parameters
-        # Extent
+        ## Extent
         self.minlon = self.addAdvancedParameter(QgsDoubleSpinBox,
                                                 "Minimum longitude (in arc degrees):")
         self.minlon.setMinimum(-180)
@@ -159,10 +159,18 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.maxlat.setMaximum(90)
         self.maxlat.setValue(90)
         
-        # Threads
+        ## Threads
         self.threads = self.addAdvancedParameter(TaSpinBox,
                                                  "Number of threads to use during reconstruction:")
         self.threads.spinBox.setMinimum(1)
+        
+        ## Spreading rate
+        self.spreading_rate = self.addAdvancedParameter(
+            QgsDoubleSpinBox, "Initial ocean spreading rate:",
+            variant_index="Bathymetry")
+        self.spreading_rate.setMinimum(0)
+        self.spreading_rate.setMaximum(1000)
+        self.spreading_rate.setValue(75.)
         
         # Fill the parameters' tab of the Dialog with the defined parameters
         self.fillDialog()

@@ -32,6 +32,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             end_time = self.dlg.endTime.spinBox.value()
             time_step = self.dlg.timeStep.spinBox.value()
             resolution = self.dlg.resolution.value()
+            spreading_rate = self.dlg.spreading_rate.value()
             
         minlon = self.dlg.minlon.value()
         maxlon = self.dlg.maxlon.value()
@@ -91,7 +92,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             self.feedback.info("Starting reconstruction...")
             run_paleo_age_grids(model_name, cache_manager.model_data_dir, self.temp_dir, self.feedback,
                                 start_time, end_time, time_step, resolution, minlon, maxlon,
-                                minlat, maxlat, n_threads)
+                                minlat, maxlat, n_threads, spreading_rate)
             self.feedback.info("Reconstruction finished.")
             self.feedback.progress += 30
             
