@@ -185,9 +185,11 @@ class TaStandardProcessingDlg(TaBaseDialog):
                                                       "Calculate bathymetry",
                                                       "Time of the age raster:")
         self.ageRasterTime.setValue(0)
+        self.ageRasterTime.setMaximum(20000)
         self.reconstructionTime = self.addVariantParameter(QgsSpinBox,
                                                            "Calculate bathymetry",
                                                            "Reconstruction time:")
+        self.reconstructionTime.setMaximum(20000)
 
         # Parameters for changing map symbology
         self.colorPalette = self.addVariantParameter(

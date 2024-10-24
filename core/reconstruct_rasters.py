@@ -4,7 +4,7 @@
 
 from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
-from .utils import exportArrayToGeoTIFF, clipArrayToExtent
+from .utils import exportArrayToGeoTIFF, clipArrayToExtent, convertAgeToDepth
 from .cache_manager import cache_manager
 
 from agegrid.run_paleo_age_grids import run_paleo_age_grids
@@ -27,11 +27,12 @@ class TaReconstructRasters(TaBaseAlgorithm):
             resampling = self.dlg.resampling.isChecked()
             resampling_resolution = self.dlg.resampling_resolution.value()
             interpolationMethod = self.dlg.interpolationMethod.currentIndex()
-        if raster_type == "Bathymetry":
+        if raster_type == "Agegrid":
             start_time = self.dlg.startTime.spinBox.value()
             end_time = self.dlg.endTime.spinBox.value()
             time_step = self.dlg.timeStep.spinBox.value()
             resolution = self.dlg.resolution.value()
+            convert = self.dlg.convertToBathymetry.isChecked()
             spreading_rate = self.dlg.spreading_rate.value()
             
         minlon = self.dlg.minlon.value()
@@ -85,7 +86,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             # Exporting result as GeoTIFF
             exportArrayToGeoTIFF(output_path, topo_raster._data, topo_raster._lons, topo_raster._lats, self.crs)
             
-        elif raster_type == 'Bathymetry':
+        elif raster_type == 'Agegrid':
             self.feedback.info(f"Downloading {model_name} model...")
             cache_manager.download_model(model_name, self.feedback)
             
@@ -94,11 +95,13 @@ class TaReconstructRasters(TaBaseAlgorithm):
                                 start_time, end_time, time_step, resolution, minlon, maxlon,
                                 minlat, maxlat, n_threads, spreading_rate)
             self.feedback.info("Reconstruction finished.")
-            self.feedback.progress += 30
             
-            # Exporting result as GeoTIFF
             path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
             agegrid = gplately.Raster(data=path)
+            if convert:
+                self.feedback.info("Converting ocean age to bathymetry...")
+                agegrid._data = convertAgeToDepth(agegrid._data, 0, 0)
+                self.feedback.progress += 5
             exportArrayToGeoTIFF(output_path, agegrid._data, agegrid._lons, agegrid._lats, self.crs)
             
         rlayer = QgsRasterLayer(output_path, "Temp layer", "gdal")

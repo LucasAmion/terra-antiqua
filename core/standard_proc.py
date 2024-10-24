@@ -3,24 +3,6 @@
 # Full copyright notice in file: terra_antiqua.py
 
 from .base_algorithm import TaBaseAlgorithm
-from .utils import rasterSmoothing, rasterSmoothingInPolygon
-import os
-from osgeo import gdal, gdalconst
-
-from qgis.core import (
-    QgsVectorFileWriter,
-    QgsVectorLayer,
-    QgsRasterLayer,
-    QgsExpression,
-    QgsFeatureRequest,
-    QgsProject,
-    NULL
-)
-import shutil
-
-import numpy as np
-
-
 from.utils import (
     vectorToRaster,
     fillNoData,
@@ -30,9 +12,23 @@ from.utils import (
     smoothArrayWithWrapping,
     polygonsToPolylines,
     modRescale,
-    fillNoDataWithAFixedValue
+    fillNoDataWithAFixedValue,
+    rasterSmoothing,
+    rasterSmoothingInPolygon,
+    convertAgeToDepth
 )
 
+from qgis.core import (
+    QgsVectorLayer,
+    QgsRasterLayer,
+    QgsExpression,
+    QgsFeatureRequest,
+    NULL
+)
+
+import os
+import numpy as np
+from osgeo import gdal, gdalconst
 
 class TaStandardProcessing(TaBaseAlgorithm):
 
@@ -814,18 +810,9 @@ class TaStandardProcessing(TaBaseAlgorithm):
             self.feedback.progress += 10
 
         if not self.killed:
-            # create an empty array to store calculated ocean depth from age.
-            ocean_depth = np.empty(ocean_age.shape)
-            ocean_depth[:] = np.nan
-            # calculate ocean age
-            time_difference = reconstruction_time - age_raster_time
-
-            ocean_age[ocean_age > 0] = ocean_age[ocean_age > 0] - \
-                time_difference
-            ocean_depth[ocean_age > 0] = -2620 - 330 * \
-                (np.sqrt(ocean_age[ocean_age > 0]))
-            ocean_depth[ocean_age > 90] = -5750
+            ocean_depth = convertAgeToDepth(ocean_age, reconstruction_time, age_raster_time)
             self.feedback.progress += 50
+        
         if not self.killed:
             nrows, ncols = ocean_depth.shape
             geotransform = age_raster.GetGeoTransform()

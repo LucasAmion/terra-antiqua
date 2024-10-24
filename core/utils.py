@@ -1442,6 +1442,23 @@ def clipArrayToExtent(raster, extent):
     
     raster.lons = raster.lons[np.min(lon_indices):np.max(lon_indices)+1]
     raster.lats = raster.lats[np.min(lat_indices):np.max(lat_indices)+1]
+    
+def convertAgeToDepth(ocean_age, reconstruction_time, age_raster_time):
+    # create an empty array to store calculated ocean depth from age.
+    ocean_depth = np.empty(ocean_age.shape)
+    ocean_depth[:] = np.nan
+    
+    # calculate ocean age
+    time_difference = reconstruction_time - age_raster_time
+
+    # calculate ocean depth
+    ocean_age[ocean_age > 0] = ocean_age[ocean_age > 0] - \
+        time_difference
+    ocean_depth[ocean_age > 0] = -2620 - 330 * \
+        (np.sqrt(ocean_age[ocean_age > 0]))
+    ocean_depth[ocean_age > 90] = -5750
+    
+    return ocean_depth
 
 def loadHelp(dlg):
     # set the help text in the  help box (QTextBrowser)
