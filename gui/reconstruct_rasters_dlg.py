@@ -90,8 +90,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         ## Starting time:
         self.startTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
                                                   "Start Time (in Ma)")
-        self.startTime.setDataType("integer")
-        self.startTime.spinBox.setMinimum(1)
+        self.startTime.setDataType("integer")        
         def set_maximum_start_time():
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
             self.startTime.spinBox.setMaximum(model_bigtime)
@@ -102,10 +101,17 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.endTime = self.addVariantParameter(TaSpinBox, "Bathymetry",
                                                 "End Time (in Ma)")
         self.endTime.setDataType("integer")
+        self.endTime.spinBox.setMinimum(0)
         def set_maximum_end_time():
-            self.endTime.spinBox.setMaximum(self.startTime.spinBox.value() - 1)
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            self.endTime.spinBox.setMaximum(model_bigtime - 1)
         set_maximum_end_time()
-        self.startTime.spinBox.valueChanged.connect(set_maximum_end_time)
+        self.modelName.currentIndexChanged.connect(set_maximum_end_time)
+        
+        def set_minimum_start_time():
+            self.startTime.spinBox.setMinimum(self.endTime.spinBox.value() + 1)
+        set_minimum_start_time()
+        self.endTime.spinBox.valueChanged.connect(set_minimum_start_time)
         
         ## Time Step
         self.timeStep = self.addVariantParameter(TaSpinBox, "Bathymetry",
