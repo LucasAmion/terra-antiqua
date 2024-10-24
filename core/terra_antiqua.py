@@ -37,7 +37,6 @@ from PyQt5.QtCore import (
                         )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QToolBar
-from qgis.core import QgsSettings
 
 import os.path
 
@@ -49,8 +48,9 @@ from .standard_proc import TaStandardProcessing
 from .modify_tb import TaModifyTopoBathy
 from .remove_arts_tooltip import TaRemoveArtefactsTooltip
 from .reconstruct_rasters import TaReconstructRasters
-from .settings import TaSettings
+from .reconstruct_vector_layers import TaReconstructVectorLayers
 from .algorithm_provider import TaAlgorithmProvider, TaRemoveArtefactsAlgProvider
+from .settings import TaSettings
 
 from ..gui.compile_tb_dlg import  TaCompileTopoBathyDlg
 from ..gui.modify_tb_dlg import  TaModifyTopoBathyDlg
@@ -60,6 +60,7 @@ from ..gui.set_pls_dlg import  TaSetPaleoshorelinesDlg
 from ..gui.remove_arts_dlg import  TaRemoveArtefactsDlg
 from ..gui.standard_proc_dlg import  TaStandardProcessingDlg
 from ..gui.reconstruct_rasters_dlg import  TaReconstructRastersDlg
+from ..gui.reconstruct_vector_layers_dlg import TaReconstructVectorLayersDlg
 from ..resources import *
 
 class TerraAntiqua:
@@ -217,8 +218,14 @@ class TerraAntiqua:
 
         self.add_action(
             set_pls_icon,
-            text = self.tr(u'Reconstruct Rasters'),
+            text = self.tr(u'Reconstruct Raster Layers'),
             callback = self.initReconstructRasters,
+            parent = self.iface.mainWindow())
+        
+        self.add_action(
+            set_pls_icon,
+            text = self.tr(u'Reconstruct Vector Layers'),
+            callback = self.initReconstructVectorLayers,
             parent = self.iface.mainWindow())
 
         self.add_action(
@@ -339,6 +346,14 @@ class TerraAntiqua:
         """Initializes the Reconstruct rasters algorithm and loads it"""
         self.reconstructRasters = TaAlgorithmProvider(TaReconstructRastersDlg,
                                                       TaReconstructRasters,
+                                                      self.iface,
+                                                      self.settings)
+        self.reconstructRasters.load()
+        
+    def initReconstructVectorLayers(self):
+        """Initializes the Reconstruct rasters algorithm and loads it"""
+        self.reconstructRasters = TaAlgorithmProvider(TaReconstructVectorLayersDlg,
+                                                      TaReconstructVectorLayers,
                                                       self.iface,
                                                       self.settings)
         self.reconstructRasters.load()

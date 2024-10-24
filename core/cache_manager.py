@@ -50,21 +50,24 @@ class TaCacheManager:
         
         model = self.pm_manager.get_model(model_name)
         model.set_data_dir(self.model_data_dir)
-
+        
         rotation_model = model.get_rotation_model()
         if feedback: feedback.progress += 10
-        topology_features = model.get_topologies()
-        if feedback: feedback.progress += 10
-        static_polygons = model.get_static_polygons()
-        if feedback: feedback.progress += 10
-        if "COBs" in model.get_avail_layers():
-            cobs = model.get_COBs()
-            if feedback: feedback.progress += 10
-        else:
-            cobs = None
         
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
-        return rotation_model, topology_features, static_polygons, cobs
+        return rotation_model
+    
+    def download_layer(self, model_name, layer_name, feedback=None):
+        if feedback: self.pmm_logger.addHandler(feedback.log_handler)
+        
+        model = self.pm_manager.get_model(model_name)
+        model.set_data_dir(self.model_data_dir)
+        
+        layer = model.get_layer(layer_name, return_none_if_not_exist=True)
+        if feedback: feedback.progress += 10
+        
+        if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
+        return layer
     
     def download_raster(self, rasterIdx, feedback):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)

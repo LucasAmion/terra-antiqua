@@ -129,8 +129,8 @@ class TaReconstructRastersDlg(TaBaseDialog):
         
         ## Convert to Bathymetry
         self.convertToBathymetry = self.addVariantParameter(TaCheckBox,
-                                                   "Agegrid",
-                                                   "Automatically convert to bathymetry:")
+                                                            "Agegrid",
+                                                            "Automatically convert to bathymetry:")
         self.convertToBathymetry.setChecked(True)
         
         # Advanced Parameters

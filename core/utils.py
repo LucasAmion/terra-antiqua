@@ -610,7 +610,7 @@ def setVectorSymbology(in_layer):
     assert layer.type() == QgsMapLayerType.VectorLayer, "The input layer must be of type QgsVectorLayer."
     if not layer.isValid():
         raise Exception("The input vector layer is not valid.")
-    list_of_fields = ['Category', 'Id', 'ID', 'iD', 'id', 'Fid', 'FID', 'fid', 'FEATURE_ID']
+    list_of_fields = ['NAME', 'Category', 'Id', 'ID', 'iD', 'id', 'Fid', 'FID', 'fid', 'FEATURE_ID', 'RecID']
     fni = -1
     for f in list_of_fields:
         if not fni == -1:

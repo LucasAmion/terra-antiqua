@@ -48,8 +48,10 @@ class TaReconstructRasters(TaBaseAlgorithm):
         if raster_type == 'Topography':
             if reconstruction_time > 0:
                 self.feedback.info(f"Downloading {model_name} model...")
-                rotation_model, topology_features, static_polygons, cobs = \
-                    cache_manager.download_model(model_name, self.feedback)
+                rotation_model = cache_manager.download_model(model_name, self.feedback)
+                topology_features = cache_manager.download_layer(model_name, "Topologies", self.feedback)
+                static_polygons = cache_manager.download_layer(model_name, "StaticPolygons", self.feedback)
+                cobs = cache_manager.download_layer(model_name, "COBs", self.feedback)
                 model = gplately.PlateReconstruction(rotation_model, topology_features, static_polygons)
             else:
                 model = None
@@ -89,6 +91,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
         elif raster_type == 'Agegrid':
             self.feedback.info(f"Downloading {model_name} model...")
             cache_manager.download_model(model_name, self.feedback)
+            cache_manager.download_layer(model_name, "Topologies", self.feedback)
+            cache_manager.download_layer(model_name, "COBs", self.feedback)
             
             self.feedback.info("Starting reconstruction...")
             run_paleo_age_grids(model_name, cache_manager.model_data_dir, self.temp_dir, self.feedback,

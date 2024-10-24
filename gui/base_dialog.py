@@ -257,7 +257,8 @@ class TaBaseDialog(TaTemplateDialog):
             'TaCreateTopoBathyDlg': 'Create Topo/Bathymetry',
             'TaRemoveArtefactsDlg': 'Remove Artefacts',
             'TaPrepareMasksDlg': 'Prepare Masks',
-            'TaReconstructRastersDlg': 'Reconstruct Rasters',
+            'TaReconstructRastersDlg': 'Reconstruct Raster Layers',
+            'TaReconstructVectorLayersDlg': 'Reconstruct Vector Layers',
             'TaStandardProcessingDlg': 'Standard Processing'
             }
 
@@ -289,6 +290,7 @@ class TaBaseDialog(TaTemplateDialog):
                 ('TaSetSeaLevel', 'set_sl'),
                 ('TaCalculateBathymetry', 'calc_bathy'),
                 ('TaReconstructRastersDlg', 'reconstruct_rasters'),
+                ('TaReconstructVectorLayersDlg', 'reconstruct_vector_layers'),
                 ('TaChangeMapSymbology', 'change_symbology')
                 ]
         for class_name, file_name in files:
