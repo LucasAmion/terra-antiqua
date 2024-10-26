@@ -113,7 +113,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
         if not rlayer.isValid():
             self.feedback.error("Layer failed to load!")
             self.kill()
-            self.finished.emit(False)
+            self.finished.emit(False, "")
         else:
             self.finished.emit(True, output_path)
             self.feedback.progress = 100

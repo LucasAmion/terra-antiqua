@@ -6,6 +6,8 @@ from qgis.core import QgsVectorLayer
 from .base_algorithm import TaBaseAlgorithm
 from .cache_manager import cache_manager
 import pygplates
+import os
+import glob
 
 class TaReconstructVectorLayers(TaBaseAlgorithm):
 
@@ -25,18 +27,31 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
         rotation_model = cache_manager.download_model(model_name, self.feedback)
         layer = cache_manager.download_layer(model_name, layer_type, self.feedback)
         
-        # Reconstructing raster to desired age
-        self.feedback.info("Starting reconstruction...")
-        pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
-        self.feedback.info("Reconstruction finished.")
-        self.feedback.progress += 30
-            
-        vlayer = QgsVectorLayer(output_path, "Temp layer", "ogr")
+        # Deleting old files with the same name
+        files = glob.glob(os.path.splitext(output_path)[0] + '*')
+        for file in files:
+            try:
+                os.unlink(file)
+            except:
+                self.feedback.error(f'Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.')
+                self.kill()
+                break
+        
+        if not self.killed:
+            # Reconstructing raster to desired age
+            self.feedback.info("Starting reconstruction...")
+            pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
+            self.feedback.info("Reconstruction finished.")
+            self.feedback.progress += 30
+                
+            vlayer = QgsVectorLayer(output_path, "Temp layer", "ogr")
 
-        if not vlayer.isValid():
-            self.feedback.error("Layer failed to load!")
-            self.kill()
-            self.finished.emit(False)
+            if not vlayer.isValid():
+                self.feedback.error("Layer failed to load!")
+                self.kill()
+                self.finished.emit(False, "")
+            else:
+                self.finished.emit(True, output_path)
+                self.feedback.progress = 100
         else:
-            self.finished.emit(True, output_path)
-            self.feedback.progress = 100
+            self.finished.emit(False, "")
