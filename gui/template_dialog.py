@@ -7,6 +7,7 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from PyQt5 import QtCore
 from .widgets import TaHelpBrowser
+from ..core.utils import center_window
 
 
 class TaTemplateDialog(QtWidgets.QDialog):
@@ -15,6 +16,8 @@ class TaTemplateDialog(QtWidgets.QDialog):
         self.plugin_dir = os.path.dirname(__file__)
 
         self.setGeometry(200, 200, 900, 600)
+        center_window(self)
+        
         self.tabWidget =QtWidgets.QTabWidget(self)
         self.tabWidget.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Expanding)
 

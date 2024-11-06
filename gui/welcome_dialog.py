@@ -6,12 +6,14 @@ import os
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from PyQt5 import QtCore
-
+from ..core.utils import center_window
 
 class TaWelcomeDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(TaWelcomeDialog, self).__init__(parent)
         self.setGeometry(200, 200, 700, 300)
+        center_window(self)
+        
         self.logo = QtGui.QIcon(':/logo.png')
         self.toolButton = QtWidgets.QToolButton(self)
         self.toolButton.setIcon(self.logo)

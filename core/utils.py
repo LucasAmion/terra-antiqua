@@ -18,6 +18,7 @@ from .logger import TaFeedback
 
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QVariant, QThread, QObject, pyqtSignal
+from PyQt5.QtWidgets import QDesktopWidget
 
 from osgeo import gdal, osr, ogr
 from osgeo import gdalconst
@@ -1479,7 +1480,12 @@ def loadHelp(dlg):
     with open(path_to_file, 'r', encoding='utf-8') as help_file:
         help_text = help_file.read()
     dlg.helpBox.setHtml(help_text)
-
+    
+def center_window(window):
+    qr = window.frameGeometry()
+    cp = QDesktopWidget().availableGeometry().center()
+    qr.moveCenter(cp)
+    window.move(qr.topLeft())
 
 class TaProgressImitation(QThread):
     ProgressStoped = False
