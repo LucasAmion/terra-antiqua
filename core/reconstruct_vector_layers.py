@@ -7,7 +7,6 @@ from .base_algorithm import TaBaseAlgorithm
 from .cache_manager import cache_manager
 import pygplates
 import os
-import glob
 
 class TaReconstructVectorLayers(TaBaseAlgorithm):
 
@@ -17,41 +16,56 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
     def run(self):
         # Obtaining input from dialog
         model_name = self.dlg.modelName.currentText()
-        layer_type = self.dlg.layerType.currentText().replace(' ', '')
+        layer_type = self.dlg.layerType.currentText()
         reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
         output_path = self.dlg.outputPath.filePath()
         if not output_path:
             output_path = self.dlg.outputPath.lineEdit().placeholderText()
         
-        self.feedback.info(f"Downloading {model_name} model...")
-        rotation_model = cache_manager.download_model(model_name, self.feedback)
-        layer = cache_manager.download_layer(model_name, layer_type, self.feedback)
+        # Downloading rotation model
+        try:
+            self.feedback.info(f"Downloading {model_name} rotation model...")
+            rotation_model = cache_manager.download_model(model_name, self.feedback)
+            self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
+            layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
+        except:
+            self.feedback.error(f"There was an error while downloading the {model_name} model files.")
+            self.kill()
         
-        # Deleting old files with the same name
-        files = glob.glob(os.path.splitext(output_path)[0] + '*')
-        for file in files:
-            try:
-                os.unlink(file)
-            except:
-                self.feedback.error(f'Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.')
-                self.kill()
-                break
-        
+        # Deleting old file with the same name if it exists
         if not self.killed:
-            # Reconstructing raster to desired age
-            self.feedback.info("Starting reconstruction...")
-            pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
-            self.feedback.info("Reconstruction finished.")
-            self.feedback.progress += 30
-                
-            vlayer = QgsVectorLayer(output_path, "Temp layer", "ogr")
-
-            if not vlayer.isValid():
-                self.feedback.error("Layer failed to load!")
-                self.kill()
-                self.finished.emit(False, "")
-            else:
-                self.finished.emit(True, output_path)
-                self.feedback.progress = 100
+            if os.path.exists(output_path):
+                try:
+                    os.unlink(output_path)
+                except:
+                    self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
+                    self.kill()
         else:
             self.finished.emit(False, "")
+            return
+        
+        # Reconstructing vector layer to desired age
+        if not self.killed:
+            try:
+                self.feedback.info("Starting reconstruction...")
+                pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
+                self.feedback.info("Reconstruction finished.")
+                self.feedback.progress += 30
+            except:
+                self.feedback.error(f"There was an error while reconstructing layer to the desired age.")
+                self.kill()
+        else:
+            self.finished.emit(False, "")
+            return
+        
+        # Saving the result
+        vlayer = QgsVectorLayer(output_path, "Temp layer", "ogr")
+
+        if not vlayer.isValid():
+            self.feedback.error("Layer failed to load!")
+            self.kill()
+            self.finished.emit(False, "")
+        else:
+            self.finished.emit(True, output_path)
+            self.feedback.progress = 100
+        
