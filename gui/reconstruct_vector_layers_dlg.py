@@ -58,6 +58,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
             path = os.path.join(tempfile.gettempdir(),
                                 f"{layer_type}_{reconstruction_time}.0_{model_name}.shp")
             self.outputPath.lineEdit().setPlaceholderText(path)
+            self.outputPath.setFilter('*.shp')
         
         self.layerType.currentTextChanged.connect(update_output_path)
         self.modelName.currentTextChanged.connect(update_output_path)
