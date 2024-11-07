@@ -23,14 +23,15 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
             output_path = self.dlg.outputPath.lineEdit().placeholderText()
         
         # Downloading rotation model
-        try:
-            self.feedback.info(f"Downloading {model_name} rotation model...")
-            rotation_model = cache_manager.download_model(model_name, self.feedback)
-            self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
-            layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
-        except:
-            self.feedback.error(f"There was an error while downloading the {model_name} model files.")
-            self.kill()
+        if not self.killed:
+            try:
+                self.feedback.info(f"Downloading {model_name} rotation model...")
+                rotation_model = cache_manager.download_model(model_name, self.feedback)
+                self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
+                layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
+            except:
+                self.feedback.error(f"There was an error while downloading the {model_name} model files.")
+                self.kill()
         
         # Deleting old file with the same name if it exists
         if not self.killed:
@@ -40,9 +41,6 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
                 except:
                     self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
                     self.kill()
-        else:
-            self.finished.emit(False, "")
-            return
         
         # Reconstructing vector layer to desired age
         if not self.killed:
@@ -54,14 +52,13 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
             except:
                 self.feedback.error(f"There was an error while reconstructing layer to the desired age.")
                 self.kill()
-        else:
-            self.finished.emit(False, "")
-            return
         
         # Saving the result
         vlayer = QgsVectorLayer(output_path, "Temp layer", "ogr")
 
-        if not vlayer.isValid():
+        if self.killed:
+            self.finished.emit(False, "")
+        elif not vlayer.isValid():
             self.feedback.error("Layer failed to load!")
             self.kill()
             self.finished.emit(False, "")
