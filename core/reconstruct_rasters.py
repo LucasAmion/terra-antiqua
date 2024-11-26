@@ -2,6 +2,7 @@
 # Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 #Full copyright notice in file: terra_antiqua.py
 
+from osgeo import gdal
 from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
 from .utils import exportArrayToGeoTIFF, clipArrayToExtent, convertAgeToDepth
@@ -24,6 +25,12 @@ class TaReconstructRasters(TaBaseAlgorithm):
         if raster_type == "Topography":
             reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
             rasterIdx = self.dlg.inputRaster.currentIndex()
+            local = rasterIdx == 4
+            if local:
+                local_layer = self.dlg.localLayer.currentLayer()
+                if not local_layer:
+                    self.feedback.error(f"No input layer selected.")
+                    self.kill()
             resampling = self.dlg.resampling.isChecked()
             resampling_resolution = self.dlg.resampling_resolution.value()
             interpolationMethod = self.dlg.interpolationMethod.currentIndex()
@@ -64,16 +71,28 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     self.feedback.error(f"There was an error while downloading the {model_name} model files.")
                     self.kill()
             
-            # Downloading present day topography raster
             if not self.killed:
-                try:
-                    self.feedback.info("Downloading present day topography raster...")
-                    data = cache_manager.download_raster(rasterIdx, self.feedback)
-                    topo_raster = gplately.Raster(data=data, plate_reconstruction=model)
-                    self.feedback.progress += 10
-                except:
-                    self.feedback.error(f"There was an error while downloading the input raster.")
-                    self.kill()
+                if local:
+                    # Obtaning local input layer
+                    try:
+                        data = gdal.Open(local_layer.dataProvider().dataSourceUri())
+                        data = data.GetRasterBand(1).ReadAsArray()
+                        input_extent = local_layer.extent()
+                        input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMinimum(), input_extent.yMaximum())
+                        topo_raster = gplately.Raster(data=data, extent=input_extent)
+                    except:
+                        self.feedback.error(f"There was an error while reading the input raster.")
+                        self.kill()
+                else:
+                    # Downloading present day topography raster
+                    try:
+                        self.feedback.info("Downloading present day topography raster...")
+                        data = cache_manager.download_raster(rasterIdx, self.feedback)
+                        topo_raster = gplately.Raster(data=data, plate_reconstruction=model)
+                        self.feedback.progress += 10
+                    except:
+                        self.feedback.error(f"There was an error while downloading the input raster.")
+                        self.kill()
                     
             # Resampling to desired resolution
             if not self.killed:
@@ -81,7 +100,6 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     topo_raster._data = topo_raster._data.astype(float)
                     if resampling == True:
                         self.feedback.info("Resampling...")
-                        raise Exception
                         topo_raster.resample(resampling_resolution, resampling_resolution, method=interpolationMethod, inplace=True)
                     self.feedback.progress += 20
                 except:

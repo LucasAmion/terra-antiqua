@@ -2,10 +2,10 @@
 #Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 #Full copyright notice in file: terra_antiqua.py
 
-from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QComboBox, QSpinBox
 from qgis.gui import QgsDoubleSpinBox
 from .base_dialog import TaBaseDialog
-from .widgets import TaSpinBox, TaCheckBox
+from .widgets import TaSpinBox, TaCheckBox,TaRasterLayerComboBox
 from ..core.cache_manager import cache_manager
 import tempfile
 import os
@@ -47,13 +47,16 @@ class TaReconstructRastersDlg(TaBaseDialog):
         # Topography specific parameters:
         ## Input raster:
         self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
-                                                    "Input raster:",
-                                                    )
+                                                    "Input raster:")
         self.inputRaster.addItems(['ETOPO Ice surface elevation (60 arc seconds)',
                                    'ETOPO Ice surface elevation (30 arc seconds)',
                                    'ETOPO Bedrock elevation (60 arc seconds)',
-                                   'ETOPO Bedrock elevation (30 arc seconds)'])
-        self.inputRaster.setMaxVisibleItems(10)
+                                   'ETOPO Bedrock elevation (30 arc seconds)',
+                                   'Local'])
+        self.inputRaster.setCurrentText('ETOPO Ice surface elevation (60 arc seconds)')
+        
+        self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
+                                                   "Select a local raster layer:")
         
         ## Reconstruction time:
         self.reconstruction_time = self.addVariantParameter(TaSpinBox, "Topography",
@@ -72,9 +75,8 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.resampling.setChecked(True)
          
         ## Resampling Resolution:
-        self.resampling_resolution = self.addVariantParameter(QgsDoubleSpinBox,
-                                                   "Topography",
-                                                   "Resampling resolution (in arc degrees):")
+        self.resampling_resolution = self.addVariantParameter(QgsDoubleSpinBox, "Topography",
+                                                             "Resampling resolution (in arc degrees):")
         self.resampling_resolution.setValue(0.5)
                 
         ## Interpolation method:
@@ -182,6 +184,16 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.fillDialog()
         self.showVariantWidgets(self.rasterType.currentText())
         self.rasterType.currentTextChanged.connect(self.showVariantWidgets)
+        
+        # Hide local raster widget if it is not selected
+        def input_raster_changed():
+            if self.inputRaster.currentText() == "Local":
+                self.localLayer.show()
+            else:
+                self.localLayer.hide()
+        self.inputRaster.currentTextChanged.connect(input_raster_changed)
+        self.rasterType.currentTextChanged.connect(input_raster_changed)
+        input_raster_changed()
         
         # Update output path when parameters change
         def update_output_path(_):
