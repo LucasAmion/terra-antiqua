@@ -2,7 +2,7 @@
 #Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 #Full copyright notice in file: terra_antiqua.py
 
-from PyQt5.QtWidgets import QComboBox, QSpinBox
+from PyQt5.QtWidgets import QComboBox
 from qgis.gui import QgsDoubleSpinBox
 from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaCheckBox,TaRasterLayerComboBox

@@ -17,18 +17,27 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
         # Obtaining input from dialog
         model_name = self.dlg.modelName.currentText()
         layer_type = self.dlg.layerType.currentText()
+        if layer_type == "Local Layer":
+            local_layer = self.dlg.localLayer.currentLayer()
+            if not local_layer:
+                self.feedback.error(f"No input layer selected.")
+                self.kill()
         reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
         output_path = self.dlg.outputPath.filePath()
         if not output_path:
             output_path = self.dlg.outputPath.lineEdit().placeholderText()
         
-        # Downloading rotation model
+        # Downloading rotation model and input layer if needed
         if not self.killed:
             try:
                 self.feedback.info(f"Downloading {model_name} rotation model...")
                 rotation_model = cache_manager.download_model(model_name, self.feedback)
-                self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
-                layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
+                if layer_type == "Local Layer":
+                    layer = local_layer.dataProvider().dataSourceUri()
+                else:
+                    self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
+                    layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
+                    self.feedback.info(f"{layer}")
             except:
                 self.feedback.error(f"There was an error while downloading the {model_name} model files.")
                 self.kill()
