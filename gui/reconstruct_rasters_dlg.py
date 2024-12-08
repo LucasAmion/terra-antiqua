@@ -20,6 +20,18 @@ class TaReconstructRastersDlg(TaBaseDialog):
         """Constructor."""
         super(TaReconstructRastersDlg, self).__init__(parent)
         self.defineParameters()
+        
+    def reloadHelp(self):
+        """
+        Sets the name of the chosen processing algorithm to the dialog so that it can load the help
+        file properly.
+        """
+        processing_alg_names = [("Topography", "TaReconstructTopography"),
+                                ("Agegrid", "TaReconstructAgegrid")]
+        for alg, name in processing_alg_names:
+            if self.rasterType.currentText() == alg:
+                self.setDialogName(name)
+        self.loadHelp()
 
     def defineParameters(self):
         """ Adds parameters to a list object that is used by the TaBaseDialog
@@ -29,6 +41,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.rasterType = self.addMandatoryParameter(QComboBox,
                                                      "Type of raster to reconstruct:")
         self.rasterType.addItems(['Topography', 'Agegrid'])
+        self.rasterType.currentTextChanged.connect(self.reloadHelp)
         
         # Rotation Model:
         self.modelName = self.addMandatoryParameter(QComboBox,
@@ -174,7 +187,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         
         ## Spreading rate
         self.spreading_rate = self.addAdvancedParameter(
-            QgsDoubleSpinBox, "Initial ocean spreading rate:",
+            QgsDoubleSpinBox, "Initial ocean spreading rate (mm/yr):",
             variant_index="Agegrid")
         self.spreading_rate.setMinimum(0)
         self.spreading_rate.setMaximum(1000)

@@ -6,14 +6,50 @@ Full copyright notice in file: terra_antiqua.py -->
 
 <head>
   <link rel="stylesheet" type="text/css" href="StyleSheet.css">
+  <title> Reconstruct Vector Layers </title>
 </head>
-<title> Reconstruct Vector Layers </title>
 
 <body>
   <p>
-    This tool allows you to download vector layers from an specific tectonic plate model
-    using <b>PlateModelManager</b> and reconstruct them to a desired age using
-    the <b>GPlately</b> library.
+    This tool will allow you to reconstruct present day vector layers to a specific reconstruction
+    time applying particular rotation model, using the <b>pyGPlates</b> library.
+  </p>
+
+  <p>
+    <b>Input Layer:</b> The input layer can be downloaded from the GPlates repository, which includes
+    different types of vector layer such as <b>Static Polygons, Continental-Ocean Boundaries (COBs),
+    Coastlines</b>, etc. Since these files are associated with a particular rotation model, depending on
+    the type of layer selected, not all rotation models might be available. You can also use a local
+    vector layer that is already added to the project or a file in Shapefile format (.shp) in your
+    computer as input.
+  </p>
+  
+  <p>
+    <b>Rotation Model:</b> The rotation models available will depend on the type of vector layer selected.
+    They will be downloaded from the <b>GPlates repository</b> (see https://gwsdoc.gplates.org/models for
+    more information) into the user's data directory (<i>C:\Users\{USER}\AppData\Local
+    \QGIS\QGIS3\plugins\terra_antiqua\models\{MODEL_NAME}</i> on Windows or <i>/home/{USER}/
+    .local/share/QGIS/QGIS3/plugins/terra_antiqua/models/{MODEL_NAME}</i> on Unix based systems).
+    The downloaded files will include the rotation file itself (.rot format), as well as the vector layer
+    associated with it.
+  </p>
+
+  <p>
+    <b>Reconstruction time:</b> The time for the output layer to be generated in Ma (millions
+    of years ago).
+  </p>
+  
+  <p>
+    <b><i>Output file path:</i></b><br/>
+    If there is no path specified here, the file will be created in the temporary folder. The full path
+    will be shown in the <b>Log</b> tab and the result will be loaded to the map canvas.
+    
+    <div>
+      <b>Warning:</b> Please avoid using these characters in the file name, as they might cause
+      processing errors: <i>( ) / - % $ @ #</i><br/>
+      <b>Note:</b> If this tool is used repetitively with no path specified, previous results will
+      be overwritten. To avoid this, specify a different path (or filename) each time
+    </div>
   </p>
 </body>
 

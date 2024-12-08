@@ -289,7 +289,9 @@ class TaBaseDialog(TaTemplateDialog):
                 ('TaIsostaticCompensation', 'isostat_cp'),
                 ('TaSetSeaLevel', 'set_sl'),
                 ('TaCalculateBathymetry', 'calc_bathy'),
-                ('TaReconstructRastersDlg', 'reconstruct_rasters'),
+                ('TaReconstructRastersDlg', 'reconstruct_topography'),
+                ('TaReconstructTopography', 'reconstruct_topography'),
+                ('TaReconstructAgegrid', 'reconstruct_agegrid'),
                 ('TaReconstructVectorLayersDlg', 'reconstruct_vector_layers'),
                 ('TaChangeMapSymbology', 'change_symbology')
                 ]

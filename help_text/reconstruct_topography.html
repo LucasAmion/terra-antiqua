@@ -1,0 +1,94 @@
+<!-- Copyright (C) 2021 by Jovid Aminov, Diego Ruiz, Guillaume Dupont-Nivet
+ Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
+Full copyright notice in file: terra_antiqua.py -->
+
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="StyleSheet.css">
+  <title> Reconstruct Raster Layers </title>
+</head>
+
+<body>
+  This tool allows for the reconstruction of raster layers to a specific age using one of the
+  rotation models available in the GPlates repository. The reconstruction will be performed
+  using different approaches depending on the type of raster to be generated:
+  Topography or Agegrid.
+
+  <h4>I- Topography:</h4>
+
+  <p>
+    In the case of topography rasters the reconstruction will be achieved by taking a present day
+    raster and rotating it back in time to the desired age using the <b>GPlately</b> library.
+  </p>
+  
+  <p>
+    <b>Rotation Model:</b> The rotation model to use can be any of the ones available in the <b>GPlates
+    repository</b> (see https://gwsdoc.gplates.org/models for more information). The corresponding model
+    files will downloaded into the user's data directory (<i>C:\Users\{USER}\AppData\Local
+    \QGIS\QGIS3\plugins\terra_antiqua\models\{MODEL_NAME}</i> on Windows or <i>/home/{USER}/
+    .local/share/QGIS/QGIS3/plugins/terra_antiqua/models/{MODEL_NAME}</i> on Unix based systems).
+    The downloaded files will include the rotation file itself (.rot format), as well as the Topology
+    Features and Static Polygons.
+  </p>
+  
+  <p>
+    <b>Input Raster:</b> For the input raster you can use the Bedrock or Ice surface elevation ETOPO
+    Global Relief Model 2022, which is available in its 15 arc-seconds or 30 arc-seconds resolutions.
+    It will be downloaded from the NOAA (National Oceanic and Atmospheric Administration) official
+    website. The download process can take some time due to the size of these files, but it only needs
+    to be done once because the files will be stored in the user's data folder for further use.
+    (<i>C:\Users\{USER}\AppData\Local\QGIS\QGIS3\plugins\terra_antiqua\rasters</i> on Windows or
+    <i>/home/{USER}/.local/share/QGIS/QGIS3/plugins/terra_antiqua/rasters</i> on Unix based systems).
+    You can also use a local raster layer that is already added to the project or a GeoTiFF (.tif of
+    .tiff format) file in your computer.
+  </p>
+
+  <p>
+    <b>Reconstruction time:</b> The time for the output raster layer to be generated in Ma (millions
+    of years ago). Its maximum value depends on the selected rotation model.
+  </p>
+  
+  <p>
+    <b>Resampling:</b> We give the option to perform resampling on the input raster prior to the
+    reconstruction. This can be useful in situations where one wishes to lower the resolution of the
+    raster to shrink the size of the output file or speed up the process and precision is not that
+    important. Though it is possible, it is not recommended to choose a sampling resolution higher
+    than that of the input raster.
+  </p>
+
+  <p><i><b>Advanced parameters:</b></i></p>
+
+  <p>
+    <b>Interpolation method:</b> This refers to the method used to compute the values of each new point
+    generated while performing the resampling of the input raster. The default is linear, but you can
+    choose up to 5th-degree interpolation.
+  </p>
+
+  <p>
+    <b>Extent:</b> The raster can be cropped to a specific bound defining maximum and minimum values for
+    longitude and latitudes. This will be done after the reconstruction is finished. This is useful if one
+    is only concerned with a particular region of the globe.
+  </p>
+  
+  <p>
+    <b>Number of Threads:</b> This allows the algorithm to run in multiple parallel threads, which speeds
+    up the reconstruction process. We recommend setting this to a value lower or equal to the number
+    of cores of your computer's CPU.
+  </p>
+
+  <p>
+    <b><i>Output file path:</i></b><br/>
+    If there is no path specified here, the file will be created in the temporary folder. The full path
+    will be shown in the <b>Log</b> tab and the result will be loaded to the map canvas.
+    
+    <div>
+      <b>Warning:</b> Please avoid using these characters in the file name, as they might cause
+      processing errors: <i>( ) / - % $ @ #</i><br/>
+      <b>Note:</b> If this tool is used repetitively with no path specified, previous results will
+      be overwritten. To avoid this, specify a different path (or filename) each time
+    </div>
+  </p>
+</body>
+
+</html>
