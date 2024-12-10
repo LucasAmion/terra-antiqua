@@ -215,15 +215,17 @@ class TerraAntiqua:
         std_proc_icon = ':/std_proc_icon.png'
         feat_create_icon = ':/feat_create_icon.png'
         remove_arts_icon = ':/remove_arts_icon.png'
+        raster_layers_icon = ':/raster_layers_icon.png'
+        vector_layers_icon = ':/vector_layers_icon.svg'
 
         self.add_action(
-            set_pls_icon,
+            raster_layers_icon,
             text = self.tr(u'Reconstruct Raster Layers'),
             callback = self.initReconstructRasters,
             parent = self.iface.mainWindow())
         
         self.add_action(
-            set_pls_icon,
+            vector_layers_icon,
             text = self.tr(u'Reconstruct Vector Layers'),
             callback = self.initReconstructVectorLayers,
             parent = self.iface.mainWindow())
