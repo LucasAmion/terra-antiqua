@@ -61,12 +61,12 @@ class TaReconstructRastersDlg(TaBaseDialog):
         ## Input raster:
         self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
                                                     "Input raster:")
-        self.inputRaster.addItems(['ETOPO Ice surface elevation (60 arc seconds)',
-                                   'ETOPO Ice surface elevation (30 arc seconds)',
-                                   'ETOPO Bedrock elevation (60 arc seconds)',
-                                   'ETOPO Bedrock elevation (30 arc seconds)',
+        self.inputRaster.addItems(['ETOPO Ice (60 arc seconds)',
+                                   'ETOPO Ice (30 arc seconds)',
+                                   'ETOPO Bedrock (60 arc seconds)',
+                                   'ETOPO Bedrock (30 arc seconds)',
                                    'Local'])
-        self.inputRaster.setCurrentText('ETOPO Ice surface elevation (60 arc seconds)')
+        self.inputRaster.setCurrentText('ETOPO Ice (60 arc seconds)')
         
         self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
                                                    "Select a local raster layer:")

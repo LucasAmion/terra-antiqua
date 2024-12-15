@@ -1418,7 +1418,7 @@ def exportArrayToGeoTIFF(path, data, lons, lats, crs):
     minlat, maxlat = lats[0], lats[-1]
     pixel_width = (maxlon - minlon) / (lons.size - 1)
     pixel_height = (maxlat - minlat) / (lats.size - 1)
-    geotransform = (minlon, pixel_width, 0, minlat, 0, pixel_height)
+    geotransform = (minlon, pixel_width, 0, maxlat, 0, -pixel_height)
     out_raster.SetGeoTransform(geotransform)
 
     # Set projection
@@ -1426,7 +1426,7 @@ def exportArrayToGeoTIFF(path, data, lons, lats, crs):
 
     # Write data to band
     out_band = out_raster.GetRasterBand(1)
-    out_band.WriteArray(data)
+    out_band.WriteArray(np.flip(data, 0))
     out_band.SetNoDataValue(np.nan)
 
     # Close the output dataset and flush changes to disk
