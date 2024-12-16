@@ -6,10 +6,10 @@ import os
 class TaCacheManager:
     
     available_rasters = {
-        0: "etopo_ice_60",
-        1: "etopo_ice_30",
-        2: "etopo_bed_60",
-        3: "etopo_bed_30"
+        0: "etopo_bed_60",
+        1: "etopo_bed_30",
+        2: "etopo_ice_60",
+        3: "etopo_ice_30"
     }
     
     def __init__(self):

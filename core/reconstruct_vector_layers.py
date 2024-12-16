@@ -37,7 +37,6 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
                 else:
                     self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
                     layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
-                    self.feedback.info(f"{layer}")
             except:
                 self.feedback.error(f"There was an error while downloading the {model_name} model files.")
                 self.kill()
