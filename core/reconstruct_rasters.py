@@ -133,14 +133,22 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     self.feedback.error(f"There was an error while clipping the raster.")
                     self.kill()
             
-            # Exporting result as GeoTIFF
+            # Exporting result as NetCDF file
+            if not self.killed:
+                if os.path.exists(output_path):
+                    try:
+                        os.unlink(output_path)
+                    except:
+                        self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
+                        self.kill()
             if not self.killed:
                 try:
-                    exportArrayToGeoTIFF(output_path, topo_raster._data, topo_raster._lons, topo_raster._lats, self.crs)
+                    topo_raster.save_to_netcdf4(output_path)
                 except:
-                    self.feedback.error(f"There was an error while exporting the result to GeoTIFF.")
+                    self.feedback.error(f"There was an error while exporting the result to NetCDF.")
                     self.kill()
-            
+                        
+                    
         elif raster_type == 'Agegrid':
             # Downloading rotation model files
             if not self.killed:
@@ -178,13 +186,20 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         self.feedback.error(f"There was an error while converting age raster to bathymetry.")
                         self.kill()
                 
-            # Exporting result as GeoTIFF
+            # Exporting result as NetCDF file
             if not self.killed:
-                try:
-                    exportArrayToGeoTIFF(output_path, agegrid._data, agegrid._lons, agegrid._lats, self.crs)
-                except:
-                    self.feedback.error(f"There was an error while exporting the result to GeoTIFF.")
-                    self.kill()
+                if os.path.exists(output_path):
+                    try:
+                        os.unlink(output_path)
+                    except:
+                        self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
+                        self.kill()
+                if not self.killed:
+                    try:
+                        agegrid.save_to_netcdf4(output_path)
+                    except:
+                        self.feedback.error(f"There was an error while exporting the result to NetCDF.")
+                        self.kill()
         
         # Saving the result
         rlayer = QgsRasterLayer(output_path, "Temp layer", "gdal")

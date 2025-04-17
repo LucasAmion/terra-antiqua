@@ -219,7 +219,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
                     raster_type = "Bathymetry"
             model_name = self.modelName.currentText()
             path = os.path.join(tempfile.gettempdir(),
-                                f"{raster_type}_{reconstruction_time}.0_{model_name}.tif")
+                                f"{raster_type}_{reconstruction_time}.0_{model_name}.nc")
             self.outputPath.lineEdit().setPlaceholderText(path)
         
         self.rasterType.currentTextChanged.connect(update_output_path)
