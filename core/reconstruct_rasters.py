@@ -78,7 +78,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         data = gdal.Open(local_layer.dataProvider().dataSourceUri())
                         data = data.GetRasterBand(1).ReadAsArray()
                         input_extent = local_layer.extent()
-                        input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMinimum(), input_extent.yMaximum())
+                        input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
                         topo_raster = gplately.Raster(data=data, extent=input_extent)
                     except:
                         self.feedback.error(f"There was an error while reading the input raster.")
