@@ -71,28 +71,27 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     self.feedback.error(f"There was an error while downloading the {model_name} model files.")
                     self.kill()
             
+            # Obtaning input layer
             if not self.killed:
-                if local:
-                    # Obtaning local input layer
-                    try:
-                        data = gdal.Open(local_layer.dataProvider().dataSourceUri())
-                        data = data.GetRasterBand(1).ReadAsArray()
-                        input_extent = local_layer.extent()
-                        input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
-                        topo_raster = gplately.Raster(data=data, extent=input_extent)
-                    except:
-                        self.feedback.error(f"There was an error while reading the input raster.")
-                        self.kill()
-                else:
-                    # Downloading present day topography raster
+                if not local:
                     try:
                         self.feedback.info("Downloading present day topography raster...")
                         data = cache_manager.download_raster(rasterIdx, self.feedback)
-                        topo_raster = gplately.Raster(data=data, plate_reconstruction=model)
-                        self.feedback.progress += 10
+                        with gdal.config_option('GDAL_PAM_ENABLED', 'NO'):
+                            local_layer = QgsRasterLayer(data, data, 'gdal')
                     except:
                         self.feedback.error(f"There was an error while downloading the input raster.")
                         self.kill()
+                try:
+                    data = gdal.Open(local_layer.dataProvider().dataSourceUri())
+                    data = data.GetRasterBand(1).ReadAsArray()
+                    input_extent = local_layer.extent()
+                    input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
+                    topo_raster = gplately.Raster(data=data, extent=input_extent)
+                except:
+                    self.feedback.error(f"There was an error while reading the input raster.")
+                    self.kill()
+                    
                     
             # Resampling to desired resolution
             if not self.killed:
