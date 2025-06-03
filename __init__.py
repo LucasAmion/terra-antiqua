@@ -23,7 +23,8 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-
+import subprocess
+from pathlib import Path
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
@@ -32,5 +33,13 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    from .core.terra_antiqua import TerraAntiqua
+    try:
+        from .core.terra_antiqua import TerraAntiqua
+    except ImportError:
+        requirements_path = Path(__file__).parent / "requirements.txt"
+        subprocess.run(
+            f"python -m pip install -r {requirements_path}"
+        )
+        from .core.terra_antiqua import TerraAntiqua
+    
     return TerraAntiqua(iface)

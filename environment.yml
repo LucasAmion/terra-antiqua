@@ -1,19 +1,14 @@
 channels:
   - conda-forge
 dependencies:
-  - python=3
-  - numpy
-  - xarray
-  - scikit-image
-  - astropy-healpix
+  - python=3.12
   - appdirs
   - gmt
   - qgis
   - gplately
   - pygplates
+  - plate-model-manager
   - pip
   - pip:
     - PlateTectonicTools
-    - git+https://github.com/michaelchin/plate-model-manager
-    - git+https://github.com/siwill22/GPlatesReconstructionModel
-    - git+https://github.com/LucasAmion/agegrid.git
+    - paleo-age-grids
