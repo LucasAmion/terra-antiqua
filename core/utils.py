@@ -1016,8 +1016,11 @@ def isPathValid(path: str, output_type: str) -> tuple:
     file_ext = os.path.splitext(file_name)[1]
 
     if file_name and file_ext:
-        if output_type == 'raster':
+        if output_type == 'geotiff':
             if file_ext == ".tiff" or file_ext == ".tif":
+                file_check = True
+        if output_type == 'netcdf':
+            if file_ext == ".nc":
                 file_check = True
         elif output_type == 'vector':
             if file_ext == ".shp":
@@ -1031,8 +1034,10 @@ def isPathValid(path: str, output_type: str) -> tuple:
     if path_check and file_check:
         return (True, "")
     else:
-        if not file_check and output_type == 'raster':
+        if not file_check and output_type == 'geotiff':
             return(False, "Error: The file output file name is incorrect. Please provide a proper file name for the output. The file name should have a '.tif' or '.tiff' extension.")
+        elif not file_check and output_type == 'netcdf':
+            return(False, "Error: The file output file name is incorrect. Please provide a proper file name for the output. The file name should have a '.nc' extension.")
         elif not file_check and output_type == 'vector':
             return(False, "Error: The file output file name is incorrect. Please provide a proper file name for the output. The file name should have a '.shp' extension.")
         elif not path_check:

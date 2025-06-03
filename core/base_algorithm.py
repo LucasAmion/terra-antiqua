@@ -102,18 +102,20 @@ class TaBaseAlgorithm(QThread):
     def getOutFilePath(self):
         file_type = None
         algs = [
-            ('TaCreateTopoBathy', 'PaleoDEM_withCreatedFeatures.tif', 'raster'),
-            ('TaCompileTopoBathy', 'Compiled_DEM_Topo+Bathy.tif', 'raster'),
-            ('TaModifyTopoBathy', 'PaleoDEM_modified_topography.tif', 'raster'),
+            ('TaCreateTopoBathy', 'PaleoDEM_withCreatedFeatures.tif', 'geotiff'),
+            ('TaCompileTopoBathy', 'Compiled_DEM_Topo+Bathy.tif', 'geotiff'),
+            ('TaModifyTopoBathy', 'PaleoDEM_modified_topography.tif', 'geotiff'),
             ('TaPrepareMasks', 'Extracted_general_masks.shp', 'vector'),
-            ('TaRemoveArtefacts', 'PaleoDEM_withArtefactsRemoved.tif', 'raster'),
-            ('TaSetPaleoshorelines', 'PaleoDEM_Paleoshorelines_set.tif', 'raster'),
-            ('TaFillGaps', 'PaleoDEM_interpolated.tif', 'raster'),
-            ('TaCopyPasteRaster', 'PaleoDEM_with_copied_values.tif', 'raster'),
-            ('TaSmoothRaster', 'PaleoDEM_smoothed.tif', 'raster'),
-            ('TaIsostaticCompensation', 'PaleoDEM_isost_compensated.tif', 'raster'),
-            ('TaSetSeaLevel', 'PaleoDEM_with_Sea_Level_changed.tif', 'raster'),
-            ('TaCalculateBathymetry', 'PaleoDEM_with_calculated_bathymetry.tif', 'raster')
+            ('TaRemoveArtefacts', 'PaleoDEM_withArtefactsRemoved.tif', 'geotiff'),
+            ('TaSetPaleoshorelines', 'PaleoDEM_Paleoshorelines_set.tif', 'geotiff'),
+            ('TaFillGaps', 'PaleoDEM_interpolated.tif', 'geotiff'),
+            ('TaCopyPasteRaster', 'PaleoDEM_with_copied_values.tif', 'geotiff'),
+            ('TaSmoothRaster', 'PaleoDEM_smoothed.tif', 'geotiff'),
+            ('TaIsostaticCompensation', 'PaleoDEM_isost_compensated.tif', 'geotiff'),
+            ('TaSetSeaLevel', 'PaleoDEM_with_Sea_Level_changed.tif', 'geotiff'),
+            ('TaCalculateBathymetry', 'PaleoDEM_with_calculated_bathymetry.tif', 'geotiff'),
+            ('TaReconstructRasters', 'PaleoDEM_reconstructed.nc', 'netcdf'),
+            ('TaReconstructVectorLayers', 'Vector_layer_reconstructed.shp', 'vector'),
         ]
 
         temp_file_name = None
@@ -132,7 +134,7 @@ class TaBaseAlgorithm(QThread):
             out_file_path = self.dlg.outputPath.filePath()
 
         # check if the provided path for the output path is valid
-        ret = isPathValid(out_file_path, file_type if file_type else 'raster')
+        ret = isPathValid(out_file_path, file_type if file_type else 'geotiff')
         if not ret[0]:
             self.feedback.error(ret[1])
             self.kill()

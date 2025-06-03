@@ -221,6 +221,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
             path = os.path.join(tempfile.gettempdir(),
                                 f"{raster_type}_{reconstruction_time}.0_{model_name}.nc")
             self.outputPath.lineEdit().setPlaceholderText(path)
+            self.outputPath.setFilter('*.nc')
         
         self.rasterType.currentTextChanged.connect(update_output_path)
         self.modelName.currentTextChanged.connect(update_output_path)
