@@ -23,7 +23,7 @@ There are two main ways to install this plugin depending on your platform:
 
 ![install-zip](https://github.com/user-attachments/assets/daf2a506-6379-4eae-82ac-fa7bc65c3b23)
 
-- Finally, activate the plugin by ticking the corresponding checkbox in the installed plugins list. The first time the plugin is loaded, all the necesary python dependecies will be automatically installed.
+- Finally, activate the plugin by ticking the corresponding checkbox in the installed plugins list. The first time the plugin is loaded, all the necesary python dependecies will be automatically installed. You might need to restart QGIS afterwards.
 
 ### Conda
 
