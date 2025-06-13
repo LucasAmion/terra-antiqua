@@ -38,7 +38,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
             layer_type = self.layerType.currentText().replace(' ', '')
             self.modelName.clear()
             if layer_type == "LocalLayer":
-                self.modelName.addItems(cache_manager.get_available_models(required_layers=[]))
+                self.modelName.addItems(cache_manager.get_available_models())
             else:
                 self.modelName.addItems(cache_manager.get_available_models(required_layers=[layer_type]))
         self.layerType.currentTextChanged.connect(set_available_models)

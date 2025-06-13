@@ -23,23 +23,46 @@ class TaCacheManager:
         
         self.pmm_logger = logging.getLogger('pmm')
         self.pmm_logger.setLevel(logging.DEBUG)
+
+        self.model_list = self.pm_manager.get_available_model_names()
+        self.model_list.remove("default")
         
-    def get_available_models(self, required_layers):
-        model_list = self.pm_manager.get_available_model_names()
-        model_list.remove("default")
+        self.display_model_list = [self.get_display_name(model) for model in self.model_list]
         
+    def get_display_name(self, model_name):
+        """Convert model name to a more readable format."""
+        # Replace underscores with spaces
+        model_name = model_name.replace('_', ' ')
+        # Capitalize first letter
+        model_name = model_name[:1].upper() + model_name[1:]
+        # Insert space before the first number
+        for i, char in enumerate(model_name):
+            if char.isdigit():
+                return model_name[:i] + ' ' + model_name[i:]
+        return model_name
+        
+    def get_available_models(self, required_layers=[]):
+        available_models = self.display_model_list.copy()
         for layer in required_layers:
-            model_list = [model for model in model_list if self.is_layer_available(layer, model)]
-        return model_list
+            for model in available_models:
+                if not self.is_layer_available(layer, model):
+                    available_models.remove(model)
+        return available_models
     
     def is_layer_available(self, layer, model_name):
-        model = self.pm_manager.get_model(model_name)
+        model = self.get_model(model_name)
         available_layers = model.get_avail_layers()
         return layer in available_layers
     
+    def get_model(self, display_model_name):
+        """Get the model object by its display name."""
+        index = self.display_model_list.index(display_model_name)
+        model_name = self.model_list[index]
+        return self.pm_manager.get_model(model_name)
+    
     def get_model_bigtime(self, model_name):
         try:
-            model = self.pm_manager.get_model(model_name)
+            model = self.get_model(model_name)
             bigtime = model.get_big_time()
         except:
             bigtime = 1000
@@ -48,7 +71,7 @@ class TaCacheManager:
     def download_model(self, model_name, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         
-        model = self.pm_manager.get_model(model_name)
+        model = self.get_model(model_name)
         model.set_data_dir(self.model_data_dir)
         
         rotation_model = model.get_rotation_model()
@@ -60,7 +83,7 @@ class TaCacheManager:
     def download_layer(self, model_name, layer_name, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         
-        model = self.pm_manager.get_model(model_name)
+        model = self.get_model(model_name)
         model.set_data_dir(self.model_data_dir)
         
         layer = model.get_layer(layer_name, return_none_if_not_exist=True)

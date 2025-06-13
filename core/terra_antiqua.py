@@ -61,6 +61,8 @@ from ..gui.remove_arts_dlg import  TaRemoveArtefactsDlg
 from ..gui.standard_proc_dlg import  TaStandardProcessingDlg
 from ..gui.reconstruct_rasters_dlg import  TaReconstructRastersDlg
 from ..gui.reconstruct_vector_layers_dlg import TaReconstructVectorLayersDlg
+from ..gui.manage_input_files_dlg import TaManageInputFilesDlg
+from ..gui.welcome_dialog import TaWelcomeDialog
 from ..resources import *
 
 class TerraAntiqua:
@@ -217,6 +219,13 @@ class TerraAntiqua:
         remove_arts_icon = ':/remove_arts_icon.png'
         raster_layers_icon = ':/raster_layers_icon.png'
         vector_layers_icon = ':/vector_layers_icon.svg'
+        manage_input_files_icon = ':/manage_input_files_icon.png'
+        
+        self.add_action(
+            manage_input_files_icon,
+            text = self.tr(u'Manage Input Files'),
+            callback = self.initManageInputFiles,
+            parent = self.iface.mainWindow())
 
         self.add_action(
             raster_layers_icon,
@@ -359,6 +368,16 @@ class TerraAntiqua:
                                                       self.iface,
                                                       self.settings)
         self.reconstructRasters.load()
+    
+    def initManageInputFiles(self):
+        """Initializes the Manage Input Files dialog and loads it"""
+        self.welcome_page = TaWelcomeDialog()
+        if self.settings.temporarySettings.get("first_start") != False:
+            self.settings.setTempValue("first_start", False)
+            if self.welcome_page.showAgain:
+                result = self.welcome_page.exec_()
+        self.manageInputFilesDlg = TaManageInputFilesDlg()
+        self.manageInputFilesDlg.show()
     
     def initRemoveArtefacts(self):
         """Initializes the Remove artefacts algorithm and activates it"""
