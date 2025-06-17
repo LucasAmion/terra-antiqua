@@ -1,5 +1,5 @@
 from appdirs import user_data_dir
-from plate_model_manager import PlateModelManager, PresentDayRasterManager
+from plate_model_manager import PlateModelManager, PresentDayRasterManager, PlateModel
 import logging
 import os
 
@@ -12,6 +12,10 @@ class TaCacheManager:
         3: "etopo_ice_30"
     }
     
+    allowe_file_extensions = "*.gpml;;*.gpmlz;;*.gpml.gz;;*.dat;;*.pla;;*.shp;;*.geojson;;*.json;;*.gpkg;;*.gmt;;*.vgp"
+    
+    possible_layers = ["Topologies", "Coastlines", "COBs", "StaticPolygons", "ContinentalPolygons"]
+
     def __init__(self):
         data_dir = user_data_dir("QGIS3", "QGIS")
         self.model_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "models")
@@ -43,10 +47,14 @@ class TaCacheManager:
         
     def get_available_models(self, required_layers=[]):
         available_models = self.display_model_list.copy()
-        for layer in required_layers:
-            for model in available_models:
-                if not self.is_layer_available(layer, model):
-                    available_models.remove(model)
+        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        available_models.extend(local_models)
+        available_models = list(set(available_models))  # Remove duplicates
+        # for layer in required_layers:
+        #     for model in available_models:
+        #         if not self.is_layer_available(layer, model):
+        #             available_models.remove(model)
+        
         return available_models
     
     def is_layer_available(self, layer, model_name):
@@ -56,15 +64,21 @@ class TaCacheManager:
     
     def get_model(self, display_model_name):
         """Get the model object by its display name."""
-        index = self.display_model_list.index(display_model_name)
-        model_name = self.model_list[index]
-        return self.pm_manager.get_model(model_name)
+        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        if display_model_name in local_models:
+            model_name = display_model_name
+            model = PlateModel(model_name, data_dir=self.model_data_dir, readonly=True)
+        else:
+            index = self.display_model_list.index(display_model_name)
+            model_name = self.model_list[index]
+            model = self.pm_manager.get_model(model_name, self.model_data_dir)
+        return model
     
     def get_model_bigtime(self, model_name):
         try:
             model = self.get_model(model_name)
             bigtime = model.get_big_time()
-        except:
+        except Exception:
             bigtime = 1000
         return bigtime
             
@@ -72,25 +86,31 @@ class TaCacheManager:
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         
         model = self.get_model(model_name)
-        model.set_data_dir(self.model_data_dir)
         
         rotation_model = model.get_rotation_model()
         if feedback: feedback.progress += 10
         
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
         return rotation_model
-    
-    def download_layer(self, model_name, layer_name, feedback=None):
+
+    def download_all_layers(self, model_name, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         
         model = self.get_model(model_name)
-        model.set_data_dir(self.model_data_dir)
+        layers = model.get_avail_layers()
         
-        layer = model.get_layer(layer_name, return_none_if_not_exist=True)
         if feedback: feedback.progress += 10
         
+        for layer in layers:
+            if layer in self.possible_layers:
+                model.get_layer(layer, return_none_if_not_exist=True)
+                if feedback: feedback.progress += 10
+        
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
-        return layer
+    
+    def get_layer(self, model_name, layer_name, feedback=None):
+        model = self.get_model(model_name)
+        return model.get_layer(layer_name, return_none_if_not_exist=True)
     
     def download_raster(self, rasterIdx, feedback):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)

@@ -20,7 +20,7 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
         if layer_type == "Local Layer":
             local_layer = self.dlg.localLayer.currentLayer()
             if not local_layer:
-                self.feedback.error(f"No input layer selected.")
+                self.feedback.error("No input layer selected.")
                 self.kill()
         reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
         output_path = self.dlg.outputPath.filePath()
@@ -32,13 +32,23 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
             try:
                 self.feedback.info(f"Downloading {model_name} rotation model...")
                 rotation_model = cache_manager.download_model(model_name, self.feedback)
+                
+            except Exception:
+                self.feedback.error(f"There was an error while downloading the {model_name} model files.")
+                self.kill()
+                
+        if not self.killed:
+            try:
                 if layer_type == "Local Layer":
+                    self.feedback.info("Reading local input layer...")
                     layer = local_layer.dataProvider().dataSourceUri()
                 else:
-                    self.feedback.info(f"Downloading {model_name} {layer_type} input layer...")
-                    layer = cache_manager.download_layer(model_name, layer_type.replace(' ', ''), self.feedback)
-            except:
-                self.feedback.error(f"There was an error while downloading the {model_name} model files.")
+                    self.feedback.info(f"Downloading {model_name} associated vector layers...")
+                    cache_manager.download_all_layers(model_name, self.feedback)
+                    layer = cache_manager.get_layer(model_name, layer_type.replace(' ', ''), self.feedback)
+                
+            except Exception:
+                self.feedback.error("There was an error while obtaining the input layer.")
                 self.kill()
         
         # Deleting old file with the same name if it exists
@@ -46,7 +56,7 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
             if os.path.exists(output_path):
                 try:
                     os.unlink(output_path)
-                except:
+                except Exception:
                     self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
                     self.kill()
         
@@ -57,8 +67,8 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
                 pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
                 self.feedback.info("Reconstruction finished.")
                 self.feedback.progress += 30
-            except:
-                self.feedback.error(f"There was an error while reconstructing layer to the desired age.")
+            except Exception:
+                self.feedback.error("There was an error while reconstructing layer to the desired age.")
                 self.kill()
         
         # Saving the result

@@ -5,7 +5,7 @@
 from osgeo import gdal
 from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
-from .utils import exportArrayToGeoTIFF, clipArrayToExtent, convertAgeToDepth
+from .utils import clipArrayToExtent, convertAgeToDepth
 from .cache_manager import cache_manager
 
 from agegrid.run_paleo_age_grids import run_paleo_age_grids
@@ -29,7 +29,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             if local:
                 local_layer = self.dlg.localLayer.currentLayer()
                 if not local_layer:
-                    self.feedback.error(f"No input layer selected.")
+                    self.feedback.error("No input layer selected.")
                     self.kill()
             resampling = self.dlg.resampling.isChecked()
             resampling_resolution = self.dlg.resampling_resolution.value()
@@ -59,15 +59,16 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     if reconstruction_time > 0:
                         self.feedback.info(f"Downloading {model_name} model...")
                         rotation_model = cache_manager.download_model(model_name, self.feedback)
-                        topology_features = cache_manager.download_layer(model_name, "Topologies", self.feedback)
-                        static_polygons = cache_manager.download_layer(model_name, "StaticPolygons", self.feedback)
-                        cobs = cache_manager.download_layer(model_name, "COBs", self.feedback)
-                        if cobs == None:
+                        cache_manager.download_all_layers(model_name, self.feedback)
+                        topology_features = cache_manager.get_layer(model_name, "Topologies", self.feedback)
+                        static_polygons = cache_manager.get_layer(model_name, "StaticPolygons", self.feedback)
+                        cobs = cache_manager.get_layer(model_name, "COBs", self.feedback)
+                        if cobs is None:
                             self.feedback.info("Using static polygons instead.")
                         model = gplately.PlateReconstruction(rotation_model, topology_features, static_polygons)
                     else:
                         model = None
-                except:
+                except Exception:
                     self.feedback.error(f"There was an error while downloading the {model_name} model files.")
                     self.kill()
             
@@ -79,8 +80,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         data = cache_manager.download_raster(rasterIdx, self.feedback)
                         with gdal.config_option('GDAL_PAM_ENABLED', 'NO'):
                             local_layer = QgsRasterLayer(data, data, 'gdal')
-                    except:
-                        self.feedback.error(f"There was an error while downloading the input raster.")
+                    except Exception:
+                        self.feedback.error("There was an error while downloading the input raster.")
                         self.kill()
                 try:
                     data = gdal.Open(local_layer.dataProvider().dataSourceUri())
@@ -88,8 +89,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     input_extent = local_layer.extent()
                     input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
                     topo_raster = gplately.Raster(data=data, extent=input_extent)
-                except:
-                    self.feedback.error(f"There was an error while reading the input raster.")
+                except Exception:
+                    self.feedback.error("There was an error while reading the input raster.")
                     self.kill()
                     
                     
@@ -97,12 +98,12 @@ class TaReconstructRasters(TaBaseAlgorithm):
             if not self.killed:
                 try:
                     topo_raster._data = topo_raster._data.astype(float)
-                    if resampling == True:
+                    if resampling:
                         self.feedback.info("Resampling...")
                         topo_raster.resample(resampling_resolution, resampling_resolution, method=interpolationMethod, inplace=True)
                     self.feedback.progress += 20
-                except:
-                    self.feedback.error(f"There was an error while resampling the input raster.")
+                except Exception:
+                    self.feedback.error("There was an error while resampling the input raster.")
                     self.kill()
             
             # Reconstructing raster to desired age
@@ -116,8 +117,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                                             partitioning_features=partitioning_features)
                         self.feedback.info("Reconstruction finished.")
                     self.feedback.progress += 30
-                except:
-                    self.feedback.error(f"There was an error while reconstructing raster to the desired age.")
+                except Exception:
+                    self.feedback.error("There was an error while reconstructing raster to the desired age.")
                     self.kill()
             
             # Clip the raster according to the defined extent
@@ -128,8 +129,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         clipArrayToExtent(topo_raster, extent)
                         self.feedback.info("Raster clipped to the specified bounds.")
                     self.feedback.progress += 10
-                except:
-                    self.feedback.error(f"There was an error while clipping the raster.")
+                except Exception:
+                    self.feedback.error("There was an error while clipping the raster.")
                     self.kill()
             
             # Exporting result as NetCDF file
@@ -137,14 +138,14 @@ class TaReconstructRasters(TaBaseAlgorithm):
                 if os.path.exists(output_path):
                     try:
                         os.unlink(output_path)
-                    except:
+                    except Exception:
                         self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
                         self.kill()
             if not self.killed:
                 try:
                     topo_raster.save_to_netcdf4(output_path)
-                except:
-                    self.feedback.error(f"There was an error while exporting the result to NetCDF.")
+                except Exception:
+                    self.feedback.error("There was an error while exporting the result to NetCDF.")
                     self.kill()
                         
                     
@@ -154,10 +155,19 @@ class TaReconstructRasters(TaBaseAlgorithm):
                 try:
                     self.feedback.info(f"Downloading {model_name} model...")
                     cache_manager.download_model(model_name, self.feedback)
-                    cache_manager.download_layer(model_name, "Topologies", self.feedback)
-                    cache_manager.download_layer(model_name, "COBs", self.feedback)
-                except:
+                except Exception:
                     self.feedback.error(f"There was an error while downloading the {model_name} model files.")
+                    self.kill()
+                    
+            # Downloading the model's vector layers
+            if not self.killed:
+                try:
+                    self.feedback.info(f"Downloading {model_name} associated vector layers...")
+                    cache_manager.download_all_layers(model_name, self.feedback)
+                    cache_manager.get_layer(model_name, "Topologies", self.feedback)
+                    cache_manager.get_layer(model_name, "COBs", self.feedback)
+                except Exception:
+                    self.feedback.error(f"There was an error while downloading the {model_name} vector layer files.")
                     self.kill()
             
             # Running reconstruction algorithm
@@ -170,8 +180,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
                     agegrid = gplately.Raster(data=path)
                     self.feedback.info("Reconstruction finished.")
-                except:
-                    self.feedback.error(f"There was an error while performing the reconstuction.")
+                except Exception:
+                    self.feedback.error("There was an error while performing the reconstuction.")
                     self.kill()
             
             # Converting ocean age to bathymetry
@@ -181,8 +191,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         self.feedback.info("Converting ocean age to bathymetry...")
                         agegrid._data = convertAgeToDepth(agegrid._data, 0, 0)
                         self.feedback.progress += 5
-                    except:
-                        self.feedback.error(f"There was an error while converting age raster to bathymetry.")
+                    except Exception:
+                        self.feedback.error("There was an error while converting age raster to bathymetry.")
                         self.kill()
                 
             # Exporting result as NetCDF file
@@ -190,14 +200,14 @@ class TaReconstructRasters(TaBaseAlgorithm):
                 if os.path.exists(output_path):
                     try:
                         os.unlink(output_path)
-                    except:
+                    except Exception:
                         self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
                         self.kill()
                 if not self.killed:
                     try:
                         agegrid.save_to_netcdf4(output_path)
-                    except:
-                        self.feedback.error(f"There was an error while exporting the result to NetCDF.")
+                    except Exception:
+                        self.feedback.error("There was an error while exporting the result to NetCDF.")
                         self.kill()
         
         # Saving the result

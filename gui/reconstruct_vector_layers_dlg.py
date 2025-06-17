@@ -23,9 +23,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         # Layer Type:
         self.layerType = self.addMandatoryParameter(QComboBox,
                                                     "Layer to reconstruct:")
-        self.layerType.addItems(['Static Polygons', 'Continental Polygons',
-                                 'Coastlines', 'COBs', 'Cratons', 'Terranes',
-                                 'Local Layer'])
+        self.layerType.addItems(cache_manager.possible_layers)
         
         self.localLayer = self.addMandatoryParameter(TaVectorLayerComboBox,
                                                      "Select a local raster layer:")

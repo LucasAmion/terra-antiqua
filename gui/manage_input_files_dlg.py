@@ -3,11 +3,13 @@
 #Full copyright notice in file: terra_antiqua.py
 
 import os
+import json
 from PyQt5 import QtWidgets, QtGui, QtCore
 from qgis.gui import QgsCollapsibleGroupBox, QgsFileWidget
 
 from ..core.utils import center_window
 from ..core.cache_manager import cache_manager
+import shutil
 
 class TaManageInputFilesDlg(QtWidgets.QDialog):
     def __init__(self, parent=None):
@@ -48,7 +50,6 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         add_button = QtWidgets.QPushButton(" Add model")
         add_button.setIcon(QtGui.QIcon(":/addButton.png"))
         add_button.setToolTip("Add a new tectonic model")
-        add_button.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         add_button.setAutoDefault(False)
         add_button.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         
@@ -198,56 +199,51 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         layer_filewidgets.layout().setContentsMargins(0, 0, 0, 5)
         model_details.layout().addWidget(layer_filewidgets)
         
-        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Layers:"), 0, 0)
+        rotations_edit = QgsFileWidget()
+        rotations_edit.setFilter("*.rot;;*.grot")
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Rotations:"), 0, 0)
+        layer_filewidgets.layout().addWidget(rotations_edit, 0, 1, 1, 2)
+        
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Vector layers:"), 1, 0)
 
         topologies_edit = QgsFileWidget()
         topologies_edit.setStorageMode(QgsFileWidget.StorageMode.GetMultipleFiles)
-        topologies_edit.setFilter("Shapefiles (*.shp);;GeoJSON files (*.geojson);;All files (*)")
-        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Topologies:"), 1, 1)
-        layer_filewidgets.layout().addWidget(topologies_edit, 1, 2)      
+        topologies_edit.setFilter(cache_manager.allowe_file_extensions)
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Topologies:"), 2, 1)
+        layer_filewidgets.layout().addWidget(topologies_edit, 2, 2)      
         
         coastlines_edit = QgsFileWidget()
         coastlines_edit.setStorageMode(QgsFileWidget.StorageMode.GetMultipleFiles)
-        coastlines_edit.setFilter("Shapefiles (*.shp);;GeoJSON files (*.geojson);;All files (*)")
-        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Coastlines:"), 2, 1)
-        layer_filewidgets.layout().addWidget(coastlines_edit, 2, 2)      
+        coastlines_edit.setFilter(cache_manager.allowe_file_extensions)
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Coastlines:"), 3, 1)
+        layer_filewidgets.layout().addWidget(coastlines_edit, 3, 2)      
         
         cobs_edit = QgsFileWidget()
         cobs_edit.setStorageMode(QgsFileWidget.StorageMode.GetMultipleFiles)
-        cobs_edit.setFilter("Shapefiles (*.shp);;GeoJSON files (*.geojson);;All files (*)")
-        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("COBs:"), 3, 1)
-        layer_filewidgets.layout().addWidget(cobs_edit, 3, 2)      
+        cobs_edit.setFilter(cache_manager.allowe_file_extensions)
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("COBs:"), 4, 1)
+        layer_filewidgets.layout().addWidget(cobs_edit, 4, 2)      
         
         static_polygons_edit = QgsFileWidget()
         static_polygons_edit.setStorageMode(QgsFileWidget.StorageMode.GetMultipleFiles)
-        static_polygons_edit.setFilter("Shapefiles (*.shp);;GeoJSON files (*.geojson);;All files (*)")
-        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Static Polygons:"), 4, 1)
-        layer_filewidgets.layout().addWidget(static_polygons_edit, 4, 2)      
+        static_polygons_edit.setFilter(cache_manager.allowe_file_extensions)
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Static Polygons:"), 5, 1)
+        layer_filewidgets.layout().addWidget(static_polygons_edit, 5, 2)      
         
         continental_polygons_edit = QgsFileWidget()
         continental_polygons_edit.setStorageMode(QgsFileWidget.StorageMode.GetMultipleFiles)
-        continental_polygons_edit.setFilter("Shapefiles (*.shp);;GeoJSON files (*.geojson);;All files (*)")        
-        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Continental Polygons:"), 5, 1)
-        layer_filewidgets.layout().addWidget(continental_polygons_edit, 5, 2)      
+        continental_polygons_edit.setFilter(cache_manager.allowe_file_extensions)       
+        layer_filewidgets.layout().addWidget(QtWidgets.QLabel("Continental Polygons:"), 6, 1)
+        layer_filewidgets.layout().addWidget(continental_polygons_edit, 6, 2)      
 
         layer_filewidgets.hide()
         
         # Save and cancel buttons
         button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.StandardButton.Save | QtWidgets.QDialogButtonBox.StandardButton.Cancel)
         button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).setText("Save changes")
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).setIcon(QtGui.QIcon(":/saveButton.png"))
         button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).setText("Cancel")
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).setIcon(QtGui.QIcon(":/cancelButton.png"))
-        button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).setAutoDefault(False)
-        # # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).setAutoDefault(False)
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).setEnabled(False)
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).setEnabled(True)
         button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).setToolTip("Save changes to the selected model")
         button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).setToolTip("Cancel changes and close the dialog")
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(self.accept)
-        # button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).clicked.connect(self.reject)
         model_details.layout().addWidget(button_box)
         
         # Function to update the model details when a model is selected
@@ -264,21 +260,29 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                 description_text.setEnabled(True)
                 description_text.setPlainText(model_dict['Description'])
                 
-                url = model_dict['URL']
-                url_label.show()
-                url_edit.show()
-                url_edit.setEnabled(True)
-                url_edit.setText(url)
-                url_edit.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-                url_edit.setStyleSheet("color: blue; text-decoration: underline;")
-                def open_url():
-                    QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
-                url_edit.mousePressEvent = lambda event: open_url()
+                if 'URL' in model_dict:
+                    url = model_dict['URL']
+                    url_label.show()
+                    url_edit.show()
+                    url_edit.setEnabled(True)
+                    url_edit.setText(url)
+                    url_edit.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
+                    url_edit.setStyleSheet("color: blue; text-decoration: underline;")
+                    def open_url():
+                        QtGui.QDesktopServices.openUrl(QtCore.QUrl(url))
+                    url_edit.mousePressEvent = lambda event: open_url()
+                else:
+                    url_label.hide()
+                    url_edit.hide()
                 
-                version_label.show()
-                version_edit.show()
-                version_edit.setEnabled(True)
-                version_edit.setText(model_dict['Version'])
+                if 'Version' in model_dict:
+                    version_label.show()
+                    version_edit.show()
+                    version_edit.setEnabled(True)
+                    version_edit.setText(model_dict['Version'])
+                else:
+                    version_label.hide()
+                    version_edit.hide()
                 
                 smalltime_spinbox.hide()
                 smalltime_edit.show()
@@ -300,10 +304,10 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                 continental_polygons_checkbox.setEnabled(True)
                 
                 topologies_checkbox.setChecked('Topologies' in model_dict['Layers'])
-                continental_polygons_checkbox.setChecked('ContinentalPolygons' in model_dict['Layers'])
+                coastlines_checkbox.setChecked('Coastlines' in model_dict['Layers'])
                 cobs_checkbox.setChecked('COBs' in model_dict['Layers'])
                 static_polygons_checkbox.setChecked('StaticPolygons' in model_dict['Layers'])
-                coastlines_checkbox.setChecked('Coastlines' in model_dict['Layers'])
+                continental_polygons_checkbox.setChecked('ContinentalPolygons' in model_dict['Layers'])
 
         selection_model = model_list_view.selectionModel()
         selection_model.selectionChanged.connect(on_selection_changed)
@@ -314,6 +318,7 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             name_field.show()
             name_edit.setText("")
             
+            description_text.setReadOnly(False)
             description_text.setEnabled(True)
             description_text.setPlainText("")
             
@@ -339,6 +344,60 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             static_polygons_edit.setFilePath("")
             continental_polygons_edit.setFilePath("")
         add_button.clicked.connect(on_add_model_click)
+        
+        def on_save_button_pressed():
+            model_info = {}
+            model_info["Name"] = name_edit.text()
+            model_info["Description"] = description_text.toPlainText()
+            model_info["SmallTime"] = smalltime_spinbox.value()
+            model_info["BigTime"] = bigtime_spinbox.value()
+            model_info["Rotations"] = rotations_edit.filePath()
+            
+            model_info["Layers"] = {}
+            
+            data_dir = cache_manager.model_data_dir
+            os.makedirs(data_dir, exist_ok=True)
+            model_path = os.path.join(data_dir, model_info["Name"])
+            os.makedirs(model_path, exist_ok=True)
+            
+            rotations_src = rotations_edit.filePath()
+            if rotations_src and os.path.isfile(rotations_src):
+                rotations_dir =  os.path.join(model_path, "Rotations")
+                os.makedirs(rotations_dir, exist_ok=True)
+                rotations_dst = os.path.join(rotations_dir, os.path.basename(rotations_src))
+                shutil.copy(rotations_src, rotations_dst)
+                
+            else:
+                rotations_dst = ""
+            model_info["Rotations"] = rotations_dst
+            # Copy the vector layers files into the model directory
+            for layer_type, file_widget in zip(["Topologies", "Coastlines", "COBs", "StaticPolygons", "ContinentalPolygons"],
+                                               [topologies_edit, coastlines_edit, cobs_edit, static_polygons_edit, continental_polygons_edit]):
+                layer_files = file_widget.filePath().split(' ')
+                layer_files = [path.strip('"') for path in layer_files if path.strip('"')]
+                layer_files_dst = []
+                for layer_file in layer_files:
+                    if os.path.isfile(layer_file):
+                        layer_dir = os.path.join(model_path, layer_type)
+                        os.makedirs(layer_dir, exist_ok=True)
+                        layer_file_dst = os.path.join(layer_dir, os.path.basename(layer_file))
+                        shutil.copy(layer_file, layer_file_dst)
+                        layer_files_dst.append(layer_file_dst)
+                if layer_files_dst != []:
+                    model_info["Layers"][layer_type] = layer_files_dst
+                
+            metadata_file_path = os.path.join(model_path, ".metadata.json")
+            json.dump(model_info, open(metadata_file_path, 'w'))
+            model_list.setStringList(cache_manager.get_available_models())
+            
+            row = model_list.stringList().index(model_info["Name"])
+            index = model_list.index(row)
+            model_list_view.setCurrentIndex(index)
+        button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(on_save_button_pressed)
+        
+        def on_cancel_button_pressed():
+            on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
+        button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).clicked.connect(on_cancel_button_pressed)
         
         # Rasters section
         rasters_groupbox = QgsCollapsibleGroupBox("Present day raster files", vertical_splitter)
