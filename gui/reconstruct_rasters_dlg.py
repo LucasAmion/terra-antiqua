@@ -11,10 +11,6 @@ import tempfile
 import os
 
 class TaReconstructRastersDlg(TaBaseDialog):
-    topography_model_list = cache_manager.get_available_models(
-        required_layers=["Topologies", "StaticPolygons"])
-    bathymetry_model_list = cache_manager.get_available_models(
-        required_layers=["Topologies", "StaticPolygons", "COBs"])
     
     def __init__(self, parent = None):
         """Constructor."""
@@ -50,10 +46,14 @@ class TaReconstructRastersDlg(TaBaseDialog):
         def set_available_models(raster_type):
             if raster_type == "Topography":
                 self.modelName.clear()
-                self.modelName.addItems(self.topography_model_list)
+                topography_model_list = cache_manager.get_available_models(
+                    required_layers=["Topologies", "StaticPolygons"])
+                self.modelName.addItems(topography_model_list)
             elif raster_type == "Agegrid":
                 self.modelName.clear()
-                self.modelName.addItems(self.bathymetry_model_list)
+                bathymetry_model_list = cache_manager.get_available_models(
+                    required_layers=["Topologies", "StaticPolygons", "COBs"])
+                self.modelName.addItems(bathymetry_model_list)
         self.rasterType.currentTextChanged.connect(set_available_models)
         set_available_models("Topography")
         
@@ -75,6 +75,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.reconstruction_time = self.addVariantParameter(TaSpinBox, "Topography",
                                                             "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
+        self.reconstruction_time.spinBox.setMinimum(0)
         def set_maximum_reconstruction_time():
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)

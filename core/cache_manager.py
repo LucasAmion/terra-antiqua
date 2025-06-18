@@ -2,6 +2,7 @@ from appdirs import user_data_dir
 from plate_model_manager import PlateModelManager, PresentDayRasterManager, PlateModel
 import logging
 import os
+import glob
 
 class TaCacheManager:
     
@@ -12,7 +13,9 @@ class TaCacheManager:
         3: "etopo_ice_30"
     }
     
-    allowe_file_extensions = "*.gpml;;*.gpmlz;;*.gpml.gz;;*.dat;;*.pla;;*.shp;;*.geojson;;*.json;;*.gpkg;;*.gmt;;*.vgp"
+    rotations_allowed_extensions = ["*.rot", "*.grot"]
+    
+    layers_allowed_extensions = ["*.gpml", "*.gpmlz", "*.gpml.gz", "*.dat", "*.pla", "*.shp", "*.geojson", "*.json", "*.gpkg", "*.gmt", "*.vgp"]
     
     possible_layers = ["Topologies", "Coastlines", "COBs", "StaticPolygons", "ContinentalPolygons"]
 
@@ -44,27 +47,38 @@ class TaCacheManager:
             if char.isdigit():
                 return model_name[:i] + ' ' + model_name[i:]
         return model_name
+    
+    def get_local_available_model_names(self):
+        """Return the names of locally available models as a list."""
+        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        
+        for model in local_models:
+            if model in self.model_list:
+                local_models.remove(model)
+        return local_models  
         
     def get_available_models(self, required_layers=[]):
+        """Return a list of available models, filtering by required layers."""
         available_models = self.display_model_list.copy()
-        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
-        available_models.extend(local_models)
-        available_models = list(set(available_models))  # Remove duplicates
-        # for layer in required_layers:
-        #     for model in available_models:
-        #         if not self.is_layer_available(layer, model):
-        #             available_models.remove(model)
+        local_models = self.get_local_available_model_names()
+        available_models.extend(local_models)            
+
+        for layer in required_layers:
+            for model in available_models:
+                if not self.is_layer_available(layer, model):
+                    available_models.remove(model)
         
         return available_models
     
     def is_layer_available(self, layer, model_name):
+        """Check if a specific layer is available in the given model."""
         model = self.get_model(model_name)
         available_layers = model.get_avail_layers()
         return layer in available_layers
     
     def get_model(self, display_model_name):
         """Get the model object by its display name."""
-        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        local_models = self.get_local_available_model_names()
         if display_model_name in local_models:
             model_name = display_model_name
             model = PlateModel(model_name, data_dir=self.model_data_dir, readonly=True)
@@ -119,5 +133,23 @@ class TaCacheManager:
         
         return output_filename
     
+    def is_valid_rotations_file(self, file_path):
+        """Check if the given file path is a valid rotations file."""
+        if not os.path.isfile(file_path):
+            return False
+        patterns = self.rotations_allowed_extensions
+        if not any(glob.fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
+            return False
+        return True
+    
+    def is_valid_layers_file(self, file_path):
+        """Check if the given file path is a valid layers file."""
+        if not os.path.isfile(file_path):
+            return False
+        patterns = self.layers_allowed_extensions
+        if not any(glob.fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
+            return False
+        return True
+        
 cache_manager = TaCacheManager()
     
