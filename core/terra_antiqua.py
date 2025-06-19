@@ -219,7 +219,7 @@ class TerraAntiqua:
         remove_arts_icon = ':/remove_arts_icon.png'
         raster_layers_icon = ':/raster_layers_icon.png'
         vector_layers_icon = ':/vector_layers_icon.svg'
-        manage_input_files_icon = ':/manage_input_files_icon.png'
+        manage_input_files_icon = ':/download.svg'
         
         self.add_action(
             manage_input_files_icon,

@@ -68,7 +68,35 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         # Title for model details
         details_title = QtWidgets.QLabel("Select a model to see its details")
         details_title.setStyleSheet("font-weight: bold;")
-        right_side.layout().addWidget(details_title)
+        
+        # Create a horizontal layout for the title and buttons
+        title_layout = QtWidgets.QHBoxLayout()
+        title_layout.addWidget(details_title)
+        title_layout.addStretch()
+        
+        download_button = QtWidgets.QPushButton()
+        download_button.setToolTip("Download")
+        download_button.setIcon(QtGui.QIcon(":/download.svg"))
+        download_button.hide()
+        edit_button = QtWidgets.QPushButton()
+        edit_button.setIcon(QtGui.QIcon(":/pencil.svg"))
+        edit_button.setToolTip("Edit")
+        edit_button.hide()
+        delete_button = QtWidgets.QPushButton()
+        delete_button.setToolTip("Delete")
+        delete_button.setIcon(QtGui.QIcon(":/trash.svg"))
+        delete_button.hide()
+        open_button = QtWidgets.QPushButton()
+        open_button.setToolTip("Open")
+        open_button.setIcon(QtGui.QIcon(":/open.svg"))
+        open_button.hide()
+        
+        title_layout.addWidget(download_button)
+        title_layout.addWidget(edit_button)
+        title_layout.addWidget(delete_button)
+        title_layout.addWidget(open_button)
+
+        right_side.layout().addLayout(title_layout)
         
         separator = QtWidgets.QFrame()
         separator.setFrameShape(QtWidgets.QFrame.HLine)
@@ -279,6 +307,22 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                 model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
                 details_title.setText(model_name)
                 
+                if cache_manager.is_model_custom(model_name):
+                    download_button.hide()
+                    edit_button.show()
+                    delete_button.show()
+                    open_button.show()
+                elif cache_manager.is_model_available_locally(model_name):
+                    download_button.hide()
+                    edit_button.hide()
+                    delete_button.show()
+                    open_button.show()
+                else:
+                    download_button.show()
+                    edit_button.hide()
+                    delete_button.hide()
+                    open_button.hide()
+                
                 model_dict = cache_manager.get_model(model_name).model
                 
                 description_text.setEnabled(True)
@@ -328,6 +372,11 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             else:
                 details_title.setText("Select a model to see its details")
                 
+                download_button.hide()
+                edit_button.hide()
+                delete_button.hide()
+                open_button.hide()
+                
                 description_text.setEnabled(False)
                 description_text.setPlainText("")
                 
@@ -347,10 +396,15 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                 bigtime_edit.setEnabled(False)
                 bigtime_edit.setText("")
                 
+                topologies_checkbox.setChecked(False)
                 topologies_checkbox.setEnabled(False)
+                coastlines_checkbox.setChecked(False)
                 coastlines_checkbox.setEnabled(False)
+                cobs_checkbox.setChecked(False)
                 cobs_checkbox.setEnabled(False)
+                static_polygons_checkbox.setChecked(False)
                 static_polygons_checkbox.setEnabled(False)
+                continental_polygons_checkbox.setChecked(False)
                 continental_polygons_checkbox.setEnabled(False)
 
         selection_model = model_list_view.selectionModel()
@@ -462,6 +516,50 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         def on_cancel_button_pressed():
             on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
         button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).clicked.connect(on_cancel_button_pressed)
+        
+        def on_download_button_pressed():
+            index = model_list_view.currentIndex()
+            model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            try:
+                progress = QtWidgets.QProgressDialog("Downloading model...", "Cancel", 0, 0, self)
+                progress.setWindowModality(QtCore.Qt.WindowModal)
+                progress.setMinimumDuration(0)
+                progress.setValue(0)
+                progress.show()
+                QtWidgets.QApplication.processEvents()
+                cache_manager.download_model(model_name)
+                cache_manager.download_all_layers(model_name)
+                progress.close()
+                QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_name}' downloaded successfully.")
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(self, "Error", str(e))
+            on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
+        download_button.clicked.connect(on_download_button_pressed)
+        
+        def on_delete_button_pressed():
+            index = model_list_view.currentIndex()
+            model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            reply = QtWidgets.QMessageBox.question(self, "Delete Model", f"Are you sure you want to delete the model '{model_name}'?",
+                                                   QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                try:
+                    cache_manager.delete_model(model_name)
+                    model_list.setStringList(cache_manager.get_available_models())
+                    on_selection_changed(QtCore.QItemSelection(), selection_model.selection())
+                    QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_name}' deleted successfully.")
+                except Exception as e:
+                    QtWidgets.QMessageBox.critical(self, "Error", str(e))
+        delete_button.clicked.connect(on_delete_button_pressed)
+        
+        def on_open_button_pressed():
+            index = model_list_view.currentIndex()
+            model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            try:
+                model_path = cache_manager.get_model(model_name).get_model_dir()
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(model_path))
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(self, "Error", str(e))
+        open_button.clicked.connect(on_open_button_pressed)
         
         # Rasters section
         rasters_groupbox = QgsCollapsibleGroupBox("Present day raster files", vertical_splitter)

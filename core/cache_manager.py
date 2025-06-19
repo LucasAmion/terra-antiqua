@@ -48,7 +48,7 @@ class TaCacheManager:
                 return model_name[:i] + ' ' + model_name[i:]
         return model_name
     
-    def get_local_available_model_names(self):
+    def get_custom_model_names(self):
         """Return the names of locally available models as a list."""
         local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
         
@@ -60,7 +60,7 @@ class TaCacheManager:
     def get_available_models(self, required_layers=[]):
         """Return a list of available models, filtering by required layers."""
         available_models = self.display_model_list.copy()
-        local_models = self.get_local_available_model_names()
+        local_models = self.get_custom_model_names()
         available_models.extend(local_models)            
 
         for layer in required_layers:
@@ -70,6 +70,18 @@ class TaCacheManager:
         
         return available_models
     
+    def is_model_available_locally(self, display_model_name):
+        """Check if a model is available locally."""
+        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        index = self.display_model_list.index(display_model_name)
+        model_name = self.model_list[index]
+        return model_name in local_models
+    
+    def is_model_custom(self, model_name):
+        """Check if a model is a custom model."""
+        custom_models = self.get_custom_model_names()
+        return model_name in custom_models
+    
     def is_layer_available(self, layer, model_name):
         """Check if a specific layer is available in the given model."""
         model = self.get_model(model_name)
@@ -78,7 +90,7 @@ class TaCacheManager:
     
     def get_model(self, display_model_name):
         """Get the model object by its display name."""
-        local_models = self.get_local_available_model_names()
+        local_models = self.get_custom_model_names()
         if display_model_name in local_models:
             model_name = display_model_name
             model = PlateModel(model_name, data_dir=self.model_data_dir, readonly=True)
@@ -158,6 +170,11 @@ class TaCacheManager:
         if not any(glob.fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
             return False
         return True
+    
+    def delete_model(self, model_name):
+        """Delete a model from the local storage."""
+        model = self.get_model(model_name)
+        model.purge()
         
 cache_manager = TaCacheManager()
     
