@@ -378,7 +378,11 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             bigtime_edit.hide()
             bigtime_spinbox.show()
             bigtime_spinbox.setValue(0)
-            
+            def set_minimum_bigtime():
+                smalltime = smalltime_spinbox.value()
+                bigtime_spinbox.setMinimum(smalltime)
+            smalltime_spinbox.valueChanged.connect(set_minimum_bigtime)
+                
             layer_checkboxes.hide()
             layer_filewidgets.show()
             
@@ -451,6 +455,8 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             row = model_list.stringList().index(model_info["Name"])
             index = model_list.index(row)
             model_list_view.setCurrentIndex(index)
+            
+            QtWidgets.QMessageBox.information(self, "Success", "Model added successfully.")
         button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(on_save_button_pressed)
         
         def on_cancel_button_pressed():

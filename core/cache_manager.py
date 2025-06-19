@@ -95,6 +95,14 @@ class TaCacheManager:
         except Exception:
             bigtime = 1000
         return bigtime
+    
+    def get_model_smalltime(self, model_name):
+        try:
+            model = self.get_model(model_name)
+            smalltime = model.get_small_time()
+        except Exception:
+            smalltime = 0
+        return smalltime
             
     def download_model(self, model_name, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)

@@ -75,6 +75,11 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.reconstruction_time = self.addVariantParameter(TaSpinBox, "Topography",
                                                             "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
+        def set_minimum_reconstruction_time():
+            model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentText())
+            self.reconstruction_time.spinBox.setMinimum(model_smalltime)
+        set_minimum_reconstruction_time()
+        self.modelName.currentIndexChanged.connect(set_minimum_reconstruction_time)
         self.reconstruction_time.spinBox.setMinimum(0)
         def set_maximum_reconstruction_time():
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
