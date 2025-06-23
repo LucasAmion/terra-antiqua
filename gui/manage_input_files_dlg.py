@@ -411,7 +411,12 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         selection_model.selectionChanged.connect(on_selection_changed)
         
         # Function to handle the "Add model" button click
-        def on_add_model_click():
+        def on_add_model_button_pressed():
+            download_button.hide()
+            edit_button.hide()
+            delete_button.hide()
+            open_button.hide()
+            
             details_title.setText("Add a new model")
             name_field.show()
             name_edit.setText("")
@@ -447,15 +452,54 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             continental_polygons_edit.setFilePath("")
             
             button_box.show()
-        add_button.clicked.connect(on_add_model_click)
+            button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.disconnect()
+            button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(on_save_button_pressed)
+        add_button.clicked.connect(on_add_model_button_pressed)
         
-        def on_save_button_pressed():
+        def on_edit_button_pressed():
+            on_add_model_button_pressed()
+            
+            index = selection_model.currentIndex()
+            model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            model_dict = cache_manager.get_model(model_name).model
+            
+            details_title.setText(f"Edit model: {model_name}")
+            name_edit.setText(model_dict['Name'])
+            description_text.setPlainText(model_dict['Description'])
+            smalltime_spinbox.setValue(model_dict['SmallTime'])
+            bigtime_spinbox.setValue(model_dict['BigTime'])
+            
+            rotations_edit.setFilePath(model_dict['Rotations'])
+            
+            if 'Topologies' in model_dict['Layers']:
+                topologies_edit.setFilePaths(model_dict['Layers']['Topologies'])
+            if 'Coastlines' in model_dict['Layers']:
+                coastlines_edit.setFilePaths(model_dict['Layers']['Coastlines'])
+            if 'COBs' in model_dict['Layers']:
+                cobs_edit.setFilePaths(model_dict['Layers']['COBs'])
+            if 'StaticPolygons' in model_dict['Layers']:
+                static_polygons_edit.setFilePaths(model_dict['Layers']['StaticPolygons'])
+            if 'ContinentalPolygons' in model_dict['Layers']:
+                continental_polygons_edit.setFilePaths(model_dict['Layers']['ContinentalPolygons'])
+            button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.disconnect()
+            button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(lambda: on_save_button_pressed(edit=True))
+        edit_button.clicked.connect(on_edit_button_pressed)
+        
+        def on_save_button_pressed(edit=False):
+            if edit:
+                index = selection_model.currentIndex()
+                model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+                old_model_info = cache_manager.get_model(model_name).model
+            
             model_info = {}
             
             if name_edit.text() == "":
                 QtWidgets.QMessageBox.critical(self, "Error", "Model name cannot be empty.")
                 return
-            if name_edit.text() in model_list.stringList() or name_edit.text() in cache_manager.model_list:
+            invalid_names = model_list.stringList() + cache_manager.model_list
+            if edit:
+                invalid_names.remove(old_model_info["Name"])
+            if name_edit.text() in invalid_names:
                 QtWidgets.QMessageBox.critical(self, "Error", "Model name already exists.")
                 return
             
@@ -473,7 +517,8 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                 rotations_dir = os.path.join(model_path, "Rotations")
                 os.makedirs(rotations_dir, exist_ok=True)
                 rotations_dst = os.path.join(rotations_dir, os.path.basename(rotations_src))
-                shutil.copy(rotations_src, rotations_dst)
+                if os.path.abspath(rotations_src) != os.path.abspath(rotations_dst):
+                    shutil.copy(rotations_src, rotations_dst)
             else:
                 QtWidgets.QMessageBox.critical(self, "Error", "Please select a valid rotations file.")
                 return
@@ -484,12 +529,16 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             # Copy the vector layers files into the model directory
             for layer_type, file_widget in zip(["Topologies", "Coastlines", "COBs", "StaticPolygons", "ContinentalPolygons"],
                                                [topologies_edit, coastlines_edit, cobs_edit, static_polygons_edit, continental_polygons_edit]):
-                layer_files = file_widget.filePath().split(' ')
-                layer_files = [path.strip('"') for path in layer_files]
+                layer_files = file_widget.splitFilePaths(file_widget.filePath())
+                if edit:
+                    for file in old_model_info["Layers"].get(layer_type, []):
+                        if file in layer_files:
+                            layer_files.remove(file)
+                        else:
+                            os.remove(file)
+                            
                 layer_files_dst = []
                 for layer_file in layer_files:
-                    if not layer_file:
-                        continue
                     if cache_manager.is_valid_layers_file(layer_file):
                         layer_dir = os.path.join(model_path, layer_type)
                         os.makedirs(layer_dir, exist_ok=True)
@@ -497,21 +546,26 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                         shutil.copy(layer_file, layer_file_dst)
                         layer_files_dst.append(layer_file_dst)
                     else:
-                        QtWidgets.QMessageBox.critical(self, "Error", f"Please select valid {layer_type.lower()} files.")
+                        QtWidgets.QMessageBox.critical(self, "Error", f"Please select valid {layer_type} files.")
                         return
                 if layer_files_dst != []:
                     model_info["Layers"][layer_type] = layer_files_dst
                 
             metadata_file_path = os.path.join(model_path, ".metadata.json")
             json.dump(model_info, open(metadata_file_path, 'w'))
-            model_list.setStringList(cache_manager.get_available_models())
             
+            if edit and model_info["Name"] != old_model_info["Name"]:
+                shutil.rmtree(os.path.join(cache_manager.model_data_dir, old_model_info["Name"]))
+            
+            model_list.setStringList(cache_manager.get_available_models())
             row = model_list.stringList().index(model_info["Name"])
             index = model_list.index(row)
             model_list_view.setCurrentIndex(index)
             
-            QtWidgets.QMessageBox.information(self, "Success", "Model added successfully.")
-        button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Save).clicked.connect(on_save_button_pressed)
+            if edit:
+                QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_info['Name']}' updated successfully.")
+            else:
+                QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_info['Name']}' added successfully.")
         
         def on_cancel_button_pressed():
             on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
@@ -520,20 +574,37 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         def on_download_button_pressed():
             index = model_list_view.currentIndex()
             model_name = model_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
-            try:
-                progress = QtWidgets.QProgressDialog("Downloading model...", "Cancel", 0, 0, self)
-                progress.setWindowModality(QtCore.Qt.WindowModal)
-                progress.setMinimumDuration(0)
-                progress.setValue(0)
-                progress.show()
-                QtWidgets.QApplication.processEvents()
-                cache_manager.download_model(model_name)
-                cache_manager.download_all_layers(model_name)
+            
+            progress = QtWidgets.QProgressDialog("Downloading model...", "Cancel", 0, 0, self)
+            progress.setWindowModality(QtCore.Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.setValue(0)
+            progress.show()
+
+            class DownloadThread(QtCore.QThread):
+                error = QtCore.pyqtSignal(str)
+                def run(self):
+                    try:
+                        cache_manager.download_model(model_name)
+                        cache_manager.download_all_layers(model_name)
+                    except Exception as e:
+                        self.error.emit(str(e))
+            self.download_thread = DownloadThread()
+
+            def on_finished():
                 progress.close()
                 QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_name}' downloaded successfully.")
-            except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "Error", str(e))
-            on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
+                on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
+                
+            def on_error(error_msg):
+                progress.close()
+                QtWidgets.QMessageBox.critical(self, "Error", error_msg)
+
+            progress.canceled.connect(self.download_thread.terminate)
+            self.download_thread.finished.connect(on_finished)
+            self.download_thread.error.connect(on_error)
+            self.download_thread.start()
+            
         download_button.clicked.connect(on_download_button_pressed)
         
         def on_delete_button_pressed():

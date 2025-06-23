@@ -2,7 +2,7 @@ from appdirs import user_data_dir
 from plate_model_manager import PlateModelManager, PresentDayRasterManager, PlateModel
 import logging
 import os
-import glob
+import fnmatch
 
 class TaCacheManager:
     
@@ -51,17 +51,17 @@ class TaCacheManager:
     def get_custom_model_names(self):
         """Return the names of locally available models as a list."""
         local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
-        
+        custom_models = []
         for model in local_models:
-            if model in self.model_list:
-                local_models.remove(model)
-        return local_models  
+            if model not in self.model_list:
+                custom_models.append(model)
+        return custom_models
         
     def get_available_models(self, required_layers=[]):
         """Return a list of available models, filtering by required layers."""
         available_models = self.display_model_list.copy()
         local_models = self.get_custom_model_names()
-        available_models.extend(local_models)            
+        available_models.extend(local_models)
 
         for layer in required_layers:
             for model in available_models:
@@ -158,7 +158,7 @@ class TaCacheManager:
         if not os.path.isfile(file_path):
             return False
         patterns = self.rotations_allowed_extensions
-        if not any(glob.fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
+        if not any(fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
             return False
         return True
     
@@ -167,7 +167,7 @@ class TaCacheManager:
         if not os.path.isfile(file_path):
             return False
         patterns = self.layers_allowed_extensions
-        if not any(glob.fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
+        if not any(fnmatch.fnmatch(file_path, pattern) for pattern in patterns):
             return False
         return True
     
