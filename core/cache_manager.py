@@ -51,11 +51,10 @@ class TaCacheManager:
     def get_custom_model_names(self):
         """Return the names of locally available models as a list."""
         local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
-        custom_models = []
-        for model in local_models:
-            if model not in self.model_list:
-                custom_models.append(model)
-        return custom_models
+        for model in self.model_list:
+            if model in local_models:
+                local_models.remove(model)
+        return local_models
         
     def get_available_models(self, required_layers=[]):
         """Return a list of available models, filtering by required layers."""
@@ -64,9 +63,7 @@ class TaCacheManager:
         available_models.extend(local_models)
 
         for layer in required_layers:
-            for model in available_models:
-                if not self.is_layer_available(layer, model):
-                    available_models.remove(model)
+            available_models = [model for model in available_models if self.is_layer_available(layer, model)]
         
         return available_models
     

@@ -40,10 +40,57 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         left_side.layout().setContentsMargins(0, 0, 0, 0)
         
         # Model list
+        
+        # Custom delegate to display model name with icons
+        class ModelListDelegate(QtWidgets.QStyledItemDelegate):
+            def display_info(self, model_name):
+                if cache_manager.is_model_custom(model_name):
+                    return "🛠️", "Custom model"
+                elif cache_manager.is_model_available_locally(model_name):
+                    return "✅", "Already downloaded"
+                else:
+                    return "", ""
+        
+            def paint(self, painter, option, index):
+                model_name = index.data(QtCore.Qt.DisplayRole)
+                symbol, _ = self.display_info(model_name)
+                text = f"{model_name} {symbol}"
+                
+                # Draw background if selected
+                if option.state & QtWidgets.QStyle.State_Selected:
+                    painter.fillRect(option.rect, option.palette.highlight())
+        
+                # Draw text with margin
+                margin = 5
+                text_rect = option.rect.adjusted(margin, 0, -margin, 0)
+                painter.setPen(option.palette.highlightedText().color() if option.state & QtWidgets.QStyle.State_Selected else option.palette.text().color())
+                painter.drawText(text_rect, QtCore.Qt.AlignVCenter | QtCore.Qt.AlignLeft, text)
+        
+                # Draw separator line at the bottom
+                line_y = option.rect.bottom()
+                painter.setPen(QtGui.QPen(option.palette.mid().color(), 1))
+                painter.drawLine(option.rect.left(), line_y, option.rect.right(), line_y)
+        
+                painter.restore()
+        
+            def sizeHint(self, option, index):
+                # Increase item height for bigger font and margin
+                base_size = super().sizeHint(option, index)
+                return QtCore.QSize(base_size.width(), base_size.height() + 8)
+        
+            def helpEvent(self, event, view, option, index):
+                if event.type() == QtCore.QEvent.ToolTip:
+                    model_name = index.data(QtCore.Qt.DisplayRole)
+                    _, tip = self.display_info(model_name)
+                    QtWidgets.QToolTip.showText(event.globalPos(), tip)
+                    return True
+                return super().helpEvent(event, view, option, index)
+
         model_list = QtCore.QStringListModel(cache_manager.get_available_models())
         model_list_view = QtWidgets.QListView()
         model_list_view.setModel(model_list)
         model_list_view.setEditTriggers(QtWidgets.QListView.NoEditTriggers)
+        model_list_view.setItemDelegate(ModelListDelegate(model_list_view))
         left_side.layout().addWidget(model_list_view)
         
         # Button to add models

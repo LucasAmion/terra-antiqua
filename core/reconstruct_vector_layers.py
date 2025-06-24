@@ -2,6 +2,7 @@
 # Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 #Full copyright notice in file: terra_antiqua.py
 
+from PyQt5 import QtCore
 from qgis.core import QgsVectorLayer
 from .base_algorithm import TaBaseAlgorithm
 from .cache_manager import cache_manager
@@ -15,7 +16,7 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
 
     def run(self):
         # Obtaining input from dialog
-        model_name = self.dlg.modelName.currentText()
+        model_name = self.dlg.modelName.currentData(QtCore.Qt.UserRole)
         layer_type = self.dlg.layerType.currentText()
         if layer_type == "Local Layer":
             local_layer = self.dlg.localLayer.currentLayer()

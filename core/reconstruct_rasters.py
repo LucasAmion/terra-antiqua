@@ -3,6 +3,7 @@
 #Full copyright notice in file: terra_antiqua.py
 
 from osgeo import gdal
+from PyQt5 import QtCore
 from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
 from .utils import clipArrayToExtent, convertAgeToDepth
@@ -20,7 +21,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
 
     def run(self):
         # Obtaining input from dialog
-        model_name = self.dlg.modelName.currentText()
+        model_name = self.dlg.modelName.currentData(QtCore.Qt.UserRole)
         raster_type = self.dlg.rasterType.currentText()
         if raster_type == "Topography":
             reconstruction_time = self.dlg.reconstruction_time.spinBox.value()

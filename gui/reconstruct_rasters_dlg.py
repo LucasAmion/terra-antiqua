@@ -3,6 +3,7 @@
 #Full copyright notice in file: terra_antiqua.py
 
 from PyQt5.QtWidgets import QComboBox
+from PyQt5 import QtCore
 from qgis.gui import QgsDoubleSpinBox
 from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaCheckBox,TaRasterLayerComboBox
@@ -46,14 +47,33 @@ class TaReconstructRastersDlg(TaBaseDialog):
         def set_available_models(raster_type):
             if raster_type == "Topography":
                 self.modelName.clear()
-                topography_model_list = cache_manager.get_available_models(
+                model_list = cache_manager.get_available_models(
                     required_layers=["Topologies", "StaticPolygons"])
-                self.modelName.addItems(topography_model_list)
+                
             elif raster_type == "Agegrid":
                 self.modelName.clear()
-                bathymetry_model_list = cache_manager.get_available_models(
+                model_list = cache_manager.get_available_models(
                     required_layers=["Topologies", "StaticPolygons", "COBs"])
-                self.modelName.addItems(bathymetry_model_list)
+                
+            for model in model_list:
+                self.modelName.addItem(model)
+                
+                if cache_manager.is_model_custom(model):
+                    symbol = "🛠️"
+                    tooltip = "Custom model"
+                elif cache_manager.is_model_available_locally(model):
+                    symbol = "✅"
+                    tooltip = "Already downloaded"
+                else:
+                    symbol = ""
+                    tooltip = ""
+                
+                display_text = f"{model} {symbol}"
+                
+                index = self.modelName.count() - 1
+                self.modelName.setItemData(index, display_text, QtCore.Qt.DisplayRole)
+                self.modelName.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
+                self.modelName.setItemData(index, model, QtCore.Qt.UserRole)
         self.rasterType.currentTextChanged.connect(set_available_models)
         set_available_models("Topography")
         
@@ -76,13 +96,13 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                             "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
         def set_minimum_reconstruction_time():
-            model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentText())
+            model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMinimum(model_smalltime)
         set_minimum_reconstruction_time()
         self.modelName.currentIndexChanged.connect(set_minimum_reconstruction_time)
         self.reconstruction_time.spinBox.setMinimum(0)
         def set_maximum_reconstruction_time():
-            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)
         set_maximum_reconstruction_time()
         self.modelName.currentIndexChanged.connect(set_maximum_reconstruction_time)
@@ -115,7 +135,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                   "Start Time (in Ma)")
         self.startTime.setDataType("integer")        
         def set_maximum_start_time():
-            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.startTime.spinBox.setMaximum(model_bigtime)
         set_maximum_start_time()
         self.modelName.currentIndexChanged.connect(set_maximum_start_time)
@@ -126,7 +146,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.endTime.setDataType("integer")
         self.endTime.spinBox.setMinimum(0)
         def set_maximum_end_time():
-            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.endTime.spinBox.setMaximum(model_bigtime - 1)
         set_maximum_end_time()
         self.modelName.currentIndexChanged.connect(set_maximum_end_time)
@@ -223,7 +243,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 reconstruction_time = self.endTime.spinBox.value()
                 if self.convertToBathymetry.isChecked():
                     raster_type = "Bathymetry"
-            model_name = self.modelName.currentText()
+            model_name = self.modelName.currentData(QtCore.Qt.UserRole)
             path = os.path.join(tempfile.gettempdir(),
                                 f"{raster_type}_{reconstruction_time}.0_{model_name}.nc")
             self.outputPath.lineEdit().setPlaceholderText(path)

@@ -2,6 +2,7 @@
 #Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 #Full copyright notice in file: terra_antiqua.py
 
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QComboBox
 from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaVectorLayerComboBox
@@ -24,7 +25,9 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         self.layerType = self.addMandatoryParameter(QComboBox,
                                                     "Layer to reconstruct:")
         self.layerType.addItems(cache_manager.possible_layers)
-        
+        self.layerType.removeItem(0) # Topologies are not supported for reconstruction
+        self.layerType.addItem("LocalLayer")
+                
         self.localLayer = self.addMandatoryParameter(TaVectorLayerComboBox,
                                                      "Select a local raster layer:")
         
@@ -36,9 +39,28 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
             layer_type = self.layerType.currentText().replace(' ', '')
             self.modelName.clear()
             if layer_type == "LocalLayer":
-                self.modelName.addItems(cache_manager.get_available_models())
+                model_list = cache_manager.get_available_models()
             else:
-                self.modelName.addItems(cache_manager.get_available_models(required_layers=[layer_type]))
+                model_list = cache_manager.get_available_models(required_layers=[layer_type])
+            for model in model_list:
+                self.modelName.addItem(model)
+                
+                if cache_manager.is_model_custom(model):
+                    symbol = "🛠️"
+                    tooltip = "Custom model"
+                elif cache_manager.is_model_available_locally(model):
+                    symbol = "✅"
+                    tooltip = "Already downloaded"
+                else:
+                    symbol = ""
+                    tooltip = ""
+                
+                display_text = f"{model} {symbol}"
+                
+                index = self.modelName.count() - 1
+                self.modelName.setItemData(index, display_text, QtCore.Qt.DisplayRole)
+                self.modelName.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
+                self.modelName.setItemData(index, model, QtCore.Qt.UserRole)
         self.layerType.currentTextChanged.connect(set_available_models)
         set_available_models()
         
@@ -46,7 +68,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         self.reconstruction_time = self.addMandatoryParameter(TaSpinBox, "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
         def set_maximum_reconstruction_time():
-            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentText())
+            model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)
         set_maximum_reconstruction_time()
         self.modelName.currentIndexChanged.connect(set_maximum_reconstruction_time)
@@ -67,7 +89,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         def update_output_path(_):
             layer_type = self.layerType.currentText().replace(' ', '')
             reconstruction_time = self.reconstruction_time.spinBox.value()
-            model_name = self.modelName.currentText()
+            model_name = self.modelName.currentData(QtCore.Qt.UserRole)
             
             if layer_type == "LocalLayer" and self.localLayer.currentLayer():
                 layer_type = self.localLayer.currentLayer().name()
