@@ -2,8 +2,10 @@ from PyQt5 import QtWidgets
 from appdirs import user_data_dir
 from plate_model_manager import PlateModelManager, PresentDayRasterManager, PlateModel
 from plate_model_manager.exceptions import ServerUnavailable
+from plate_model_manager.utils.download import FileDownloader
 import logging
 import os
+import shutil
 import fnmatch
 
 class TaCacheManager:
@@ -53,13 +55,20 @@ class TaCacheManager:
                 return model_name[:i] + ' ' + model_name[i:]
         return model_name
     
-    def get_icon_and_tooltip(self, model_name):
-        """Get the icon and tooltip for a model."""
-        if self.model_list != []:
-            if cache_manager.is_model_custom(model_name):
-                return "🛠️", "Custom model"
-            elif cache_manager.is_model_available_locally(model_name):
-                return "✅", "Already downloaded"
+    def get_icon_and_tooltip(self, model_or_raster_name):
+        """Get the icon and tooltip for a model or raster."""
+        if model_or_raster_name is not None:
+            if model_or_raster_name in self.get_available_rasters():
+                raster_name = model_or_raster_name
+                if self.is_raster_available_locally(raster_name):
+                    return "✅", "Raster already downloaded"
+            else:
+                model_name = model_or_raster_name
+                if self.model_list != []:
+                    if cache_manager.is_model_custom(model_name):
+                        return "🛠️", "Custom model"
+                    elif cache_manager.is_model_available_locally(model_name):
+                        return "✅", "Already downloaded"
         return "", ""
     
     def get_custom_model_names(self):
@@ -161,12 +170,36 @@ class TaCacheManager:
         """Return a list of available rasters."""
         return self.raster_manager.list_present_day_rasters()
     
-    def download_raster(self, raster, feedback):
+    def is_raster_available_locally(self, raster_name):
+        """Check if a raster is already downloaded."""
+        downloader = FileDownloader(
+            self.raster_manager.rasters[raster_name],
+            f"{self.raster_data_dir}/{raster_name}/.metadata.json",
+            f"{self.raster_data_dir}/{raster_name}/",
+            large_file_hint=True,
+        )
+        return not downloader.check_if_file_need_update()
+    
+    def download_raster(self, raster, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         output_filename = self.raster_manager.get_raster(raster)
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
         
         return output_filename
+    
+    def delete_raster(self, raster_name):
+        """Delete a raster from the local storage."""
+        raster_path = os.path.join(self.raster_data_dir, raster_name)
+        if os.path.exists(raster_path):
+            shutil.rmtree(raster_path)
+    
+    def get_raster_path(self, raster_name):
+        """Get the local path of a raster."""
+        raster_path = os.path.join(self.raster_data_dir, raster_name)
+        if os.path.exists(raster_path):
+            return raster_path
+        else:
+            raise FileNotFoundError(f"Raster {raster_name} not found in {self.raster_data_dir}.")
     
     def is_valid_rotations_file(self, file_path):
         """Check if the given file path is a valid rotations file."""

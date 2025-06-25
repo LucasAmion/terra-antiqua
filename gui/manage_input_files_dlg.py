@@ -42,7 +42,7 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         # Model list
         
         # Custom delegate to display model name with icons
-        class ModelListDelegate(QtWidgets.QStyledItemDelegate):
+        class IconItemDelegate(QtWidgets.QStyledItemDelegate):
             def paint(self, painter, option, index):
                 model_name = index.data(QtCore.Qt.DisplayRole)
                 symbol, _ = cache_manager.get_icon_and_tooltip(model_name)
@@ -82,7 +82,7 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         model_list_view = QtWidgets.QListView()
         model_list_view.setModel(model_list)
         model_list_view.setEditTriggers(QtWidgets.QListView.NoEditTriggers)
-        model_list_view.setItemDelegate(ModelListDelegate(model_list_view))
+        model_list_view.setItemDelegate(IconItemDelegate(model_list_view))
         left_side.layout().addWidget(model_list_view)
         
         # Button to add models
@@ -114,19 +114,19 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         title_layout.addStretch()
         
         download_button = QtWidgets.QPushButton()
-        download_button.setToolTip("Download")
+        download_button.setToolTip("Download model")
         download_button.setIcon(QtGui.QIcon(":/download.svg"))
         download_button.hide()
         edit_button = QtWidgets.QPushButton()
         edit_button.setIcon(QtGui.QIcon(":/pencil.svg"))
-        edit_button.setToolTip("Edit")
+        edit_button.setToolTip("Edit model information")
         edit_button.hide()
         delete_button = QtWidgets.QPushButton()
-        delete_button.setToolTip("Delete")
+        delete_button.setToolTip("Delete model")
         delete_button.setIcon(QtGui.QIcon(":/trash.svg"))
         delete_button.hide()
         open_button = QtWidgets.QPushButton()
-        open_button.setToolTip("Open")
+        open_button.setToolTip("Open in file explorer")
         open_button.setIcon(QtGui.QIcon(":/open.svg"))
         open_button.hide()
         
@@ -622,18 +622,24 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
 
             class DownloadThread(QtCore.QThread):
                 error = QtCore.pyqtSignal(str)
+                def __init__(self):
+                    super().__init__()
+                    self.has_error = False
+                    
                 def run(self):
                     try:
                         cache_manager.download_model(model_name)
                         cache_manager.download_all_layers(model_name)
                     except Exception as e:
+                        self.has_error = True
                         self.error.emit(str(e))
             self.download_thread = DownloadThread()
 
             def on_finished():
                 progress.close()
-                QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_name}' downloaded successfully.")
-                on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
+                if not self.download_thread.has_error:
+                    QtWidgets.QMessageBox.information(self, "Success", f"Model '{model_name}' downloaded successfully.")
+                    on_selection_changed(selection_model.selection(), QtCore.QItemSelection())
                 
             def on_error(error_msg):
                 progress.close()
@@ -673,13 +679,116 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         
         # Rasters section
         rasters_groupbox = QgsCollapsibleGroupBox("Present day raster files", vertical_splitter)
-        rasters_groupbox.setLayout(QtWidgets.QHBoxLayout())
+        rasters_groupbox.setLayout(QtWidgets.QVBoxLayout())
         
         raster_list = QtCore.QStringListModel(cache_manager.get_available_rasters())
         raster_list_view = QtWidgets.QListView()
         raster_list_view.setModel(raster_list)
         raster_list_view.setEditTriggers(QtWidgets.QListView.NoEditTriggers)
+        raster_list_view.setItemDelegate(IconItemDelegate(raster_list_view))
         rasters_groupbox.layout().addWidget(raster_list_view)
+        
+        download_raster_button = QtWidgets.QPushButton("Download raster")
+        download_raster_button.setIcon(QtGui.QIcon(":/download.svg"))
+        download_raster_button.setEnabled(False)
+        delete_raster_button = QtWidgets.QPushButton("Delete raster")
+        delete_raster_button.setIcon(QtGui.QIcon(":/trash.svg"))
+        delete_raster_button.setEnabled(False)
+        open_raster_button = QtWidgets.QPushButton("Open folder")
+        open_raster_button.setIcon(QtGui.QIcon(":/open.svg"))
+        open_raster_button.setEnabled(False)
+        
+        raster_buttons_layout = QtWidgets.QHBoxLayout()
+        raster_buttons_layout.addStretch()
+        raster_buttons_layout.addWidget(download_raster_button)
+        raster_buttons_layout.addWidget(delete_raster_button)
+        raster_buttons_layout.addWidget(open_raster_button)
+        rasters_groupbox.layout().addLayout(raster_buttons_layout)
+        
+        def on_raster_selection_changed(selected, deselected):
+            if selected.indexes():
+                index = selected.indexes()[0]
+                raster_name = raster_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+                if cache_manager.is_raster_available_locally(raster_name):
+                    download_raster_button.setEnabled(False)
+                    delete_raster_button.setEnabled(True)
+                    open_raster_button.setEnabled(True)
+                else:
+                    download_raster_button.setEnabled(True)
+                    delete_raster_button.setEnabled(False)
+                    open_raster_button.setEnabled(False)
+            else:
+                download_raster_button.setEnabled(False)
+                delete_raster_button.setEnabled(False)
+                open_raster_button.setEnabled(False)
+        raster_selection_model = raster_list_view.selectionModel()
+        raster_selection_model.selectionChanged.connect(on_raster_selection_changed)
+        
+        def on_download_raster_button_pressed():
+            index = raster_list_view.currentIndex()
+            raster_name = raster_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            
+            progress = QtWidgets.QProgressDialog("Downloading raster...", "Cancel", 0, 0, self)
+            progress.setWindowModality(QtCore.Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.setValue(0)
+            progress.show()
+
+            class DownloadRasterThread(QtCore.QThread):
+                error = QtCore.pyqtSignal(str)
+                def __init__(self):
+                    super().__init__()
+                    self.has_error = False
+                    
+                def run(self):
+                    try:
+                        cache_manager.download_raster(raster_name)
+                    except Exception as e:
+                        self.has_error = True
+                        self.error.emit(str(e))
+            self.download_raster_thread = DownloadRasterThread()
+
+            def on_finished():
+                progress.close()
+                if not self.download_raster_thread.has_error:
+                    QtWidgets.QMessageBox.information(self, "Success", f"Raster '{raster_name}' downloaded successfully.")
+                    on_raster_selection_changed(raster_selection_model.selection(), QtCore.QItemSelection())
+                
+            def on_error(error_msg):
+                progress.close()
+                self.download_raster_thread.terminate()
+                QtWidgets.QMessageBox.critical(self, "Error", error_msg)
+
+            progress.canceled.connect(self.download_raster_thread.terminate)
+            self.download_raster_thread.finished.connect(on_finished)
+            self.download_raster_thread.error.connect(on_error)
+            self.download_raster_thread.start()
+        download_raster_button.clicked.connect(on_download_raster_button_pressed)
+        
+        def on_delete_raster_button_pressed():
+            index = raster_list_view.currentIndex()
+            raster_name = raster_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            reply = QtWidgets.QMessageBox.question(self, "Delete Raster", f"Are you sure you want to delete the raster '{raster_name}'?",
+                                                   QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            if reply == QtWidgets.QMessageBox.StandardButton.Yes:
+                try:
+                    cache_manager.delete_raster(raster_name)
+                    raster_list.setStringList(cache_manager.get_available_rasters())
+                    on_raster_selection_changed(QtCore.QItemSelection(), raster_selection_model.selection())
+                    QtWidgets.QMessageBox.information(self, "Success", f"Raster '{raster_name}' deleted successfully.")
+                except Exception as e:
+                    QtWidgets.QMessageBox.critical(self, "Error", str(e))
+        delete_raster_button.clicked.connect(on_delete_raster_button_pressed)
+        
+        def on_open_raster_button_pressed():
+            index = raster_list_view.currentIndex()
+            raster_name = raster_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
+            try:
+                raster_path = cache_manager.get_raster_path(raster_name)
+                QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(raster_path))
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(self, "Error", str(e))
+        open_raster_button.clicked.connect(on_open_raster_button_pressed)
         
         if cache_manager.get_available_rasters() == []:
             rasters_groupbox.hide()
