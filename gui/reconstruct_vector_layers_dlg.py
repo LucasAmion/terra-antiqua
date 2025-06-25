@@ -45,15 +45,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
             for model in model_list:
                 self.modelName.addItem(model)
                 
-                if cache_manager.is_model_custom(model):
-                    symbol = "🛠️"
-                    tooltip = "Custom model"
-                elif cache_manager.is_model_available_locally(model):
-                    symbol = "✅"
-                    tooltip = "Already downloaded"
-                else:
-                    symbol = ""
-                    tooltip = ""
+                symbol, tooltip = cache_manager.get_icon_and_tooltip(model)
                 
                 display_text = f"{model} {symbol}"
                 

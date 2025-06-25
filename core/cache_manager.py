@@ -1,17 +1,13 @@
+from PyQt5 import QtWidgets
 from appdirs import user_data_dir
 from plate_model_manager import PlateModelManager, PresentDayRasterManager, PlateModel
+from plate_model_manager.exceptions import ServerUnavailable
 import logging
 import os
 import fnmatch
 
 class TaCacheManager:
-    
-    available_rasters = {
-        0: "etopo_bed_60",
-        1: "etopo_bed_30",
-        2: "etopo_ice_60",
-        3: "etopo_ice_30"
-    }
+    """Cache manager for Terra Antiqua plugin, handling plate models and present-day rasters."""
     
     rotations_allowed_extensions = ["*.rot", "*.grot"]
     
@@ -22,18 +18,27 @@ class TaCacheManager:
     def __init__(self):
         data_dir = user_data_dir("QGIS3", "QGIS")
         self.model_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "models")
-        self.pm_manager = PlateModelManager()
+        self.raster_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "rasters")
         
-        raster_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "rasters")
-        self.raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
-        self.raster_manager.set_data_dir(raster_data_dir)
+        try:
+            self.pm_manager = PlateModelManager()
+            self.raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
+        except ServerUnavailable:
+            self.pm_manager = PlateModelManager(os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
+            self.raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
+            QtWidgets.QMessageBox.information(None, "Terra Antiqua - Server Unavailable",
+                                              "The Plate Model Manager server is currently unavailable, some features wont work. "
+                                              "Check your internet connection.")
+        
+        self.raster_manager.set_data_dir(self.raster_data_dir)
         
         self.pmm_logger = logging.getLogger('pmm')
         self.pmm_logger.setLevel(logging.DEBUG)
 
         self.model_list = self.pm_manager.get_available_model_names()
+        if not self.model_list:
+            self.model_list = ["default"]
         self.model_list.remove("default")
-        
         self.display_model_list = [self.get_display_name(model) for model in self.model_list]
         
     def get_display_name(self, model_name):
@@ -47,6 +52,15 @@ class TaCacheManager:
             if char.isdigit():
                 return model_name[:i] + ' ' + model_name[i:]
         return model_name
+    
+    def get_icon_and_tooltip(self, model_name):
+        """Get the icon and tooltip for a model."""
+        if self.model_list != []:
+            if cache_manager.is_model_custom(model_name):
+                return "🛠️", "Custom model"
+            elif cache_manager.is_model_available_locally(model_name):
+                return "✅", "Already downloaded"
+        return "", ""
     
     def get_custom_model_names(self):
         """Return the names of locally available models as a list."""
@@ -143,9 +157,13 @@ class TaCacheManager:
         model = self.get_model(model_name)
         return model.get_layer(layer_name, return_none_if_not_exist=True)
     
-    def download_raster(self, rasterIdx, feedback):
+    def get_available_rasters(self):
+        """Return a list of available rasters."""
+        return self.raster_manager.list_present_day_rasters()
+    
+    def download_raster(self, raster, feedback):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
-        output_filename = self.raster_manager.get_raster(self.available_rasters[rasterIdx])
+        output_filename = self.raster_manager.get_raster(raster)
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
         
         return output_filename

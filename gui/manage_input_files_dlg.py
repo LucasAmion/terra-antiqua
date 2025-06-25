@@ -43,17 +43,9 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         
         # Custom delegate to display model name with icons
         class ModelListDelegate(QtWidgets.QStyledItemDelegate):
-            def display_info(self, model_name):
-                if cache_manager.is_model_custom(model_name):
-                    return "🛠️", "Custom model"
-                elif cache_manager.is_model_available_locally(model_name):
-                    return "✅", "Already downloaded"
-                else:
-                    return "", ""
-        
             def paint(self, painter, option, index):
                 model_name = index.data(QtCore.Qt.DisplayRole)
-                symbol, _ = self.display_info(model_name)
+                symbol, _ = cache_manager.get_icon_and_tooltip(model_name)
                 text = f"{model_name} {symbol}"
                 
                 # Draw background if selected
@@ -81,7 +73,7 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             def helpEvent(self, event, view, option, index):
                 if event.type() == QtCore.QEvent.ToolTip:
                     model_name = index.data(QtCore.Qt.DisplayRole)
-                    _, tip = self.display_info(model_name)
+                    _, tip = cache_manager.get_icon_and_tooltip(model_name)
                     QtWidgets.QToolTip.showText(event.globalPos(), tip)
                     return True
                 return super().helpEvent(event, view, option, index)
@@ -683,14 +675,14 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         rasters_groupbox = QgsCollapsibleGroupBox("Present day raster files", vertical_splitter)
         rasters_groupbox.setLayout(QtWidgets.QHBoxLayout())
         
-        raster_list = QtCore.QStringListModel(['ETOPO Bedrock (60 arc seconds)',
-                                              'ETOPO Bedrock (30 arc seconds)',
-                                              'ETOPO Ice (60 arc seconds)',
-                                              'ETOPO Ice (30 arc seconds)'])
+        raster_list = QtCore.QStringListModel(cache_manager.get_available_rasters())
         raster_list_view = QtWidgets.QListView()
         raster_list_view.setModel(raster_list)
         raster_list_view.setEditTriggers(QtWidgets.QListView.NoEditTriggers)
         rasters_groupbox.layout().addWidget(raster_list_view)
+        
+        if cache_manager.get_available_rasters() == []:
+            rasters_groupbox.hide()
         
         vertical_splitter.setSizes([400, 200])
         

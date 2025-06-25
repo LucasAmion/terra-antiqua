@@ -25,8 +25,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
         raster_type = self.dlg.rasterType.currentText()
         if raster_type == "Topography":
             reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
-            rasterIdx = self.dlg.inputRaster.currentIndex()
-            local = rasterIdx == 4
+            raster = self.dlg.inputRaster.currentText()
+            local = raster == 'Local'
             if local:
                 local_layer = self.dlg.localLayer.currentLayer()
                 if not local_layer:
@@ -78,7 +78,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                 if not local:
                     try:
                         self.feedback.info("Downloading present day topography raster...")
-                        data = cache_manager.download_raster(rasterIdx, self.feedback)
+                        data = cache_manager.download_raster(raster, self.feedback)
                         with gdal.config_option('GDAL_PAM_ENABLED', 'NO'):
                             local_layer = QgsRasterLayer(data, data, 'gdal')
                     except Exception:

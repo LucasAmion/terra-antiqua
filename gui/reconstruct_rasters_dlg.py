@@ -58,15 +58,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
             for model in model_list:
                 self.modelName.addItem(model)
                 
-                if cache_manager.is_model_custom(model):
-                    symbol = "🛠️"
-                    tooltip = "Custom model"
-                elif cache_manager.is_model_available_locally(model):
-                    symbol = "✅"
-                    tooltip = "Already downloaded"
-                else:
-                    symbol = ""
-                    tooltip = ""
+                symbol, tooltip = cache_manager.get_icon_and_tooltip(model)
                 
                 display_text = f"{model} {symbol}"
                 
@@ -81,12 +73,8 @@ class TaReconstructRastersDlg(TaBaseDialog):
         ## Input raster:
         self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
                                                     "Input raster:")
-        self.inputRaster.addItems(['ETOPO Bedrock (60 arc seconds)',
-                                   'ETOPO Bedrock (30 arc seconds)',
-                                   'ETOPO Ice (60 arc seconds)',
-                                   'ETOPO Ice (30 arc seconds)',
-                                   'Local'])
-        self.inputRaster.setCurrentText('ETOPO Bedrock (60 arc seconds)')
+        self.inputRaster.addItems(cache_manager.get_available_rasters())
+        self.inputRaster.addItem('Local')
         
         self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
                                                    "Select a local raster layer:")

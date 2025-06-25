@@ -1,31 +1,6 @@
 {
-    "etopo_ice_30": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/30s/30s_surface_elev_gtif/ETOPO_2022_v1_30s_N90W180_surface.tif",
-    "etopo_ice_60": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_surface_elev_gtif/ETOPO_2022_v1_60s_N90W180_surface.tif",
-    "etopo_bed_30": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/30s/30s_bed_elev_gtif/ETOPO_2022_v1_30s_N90W180_bed.tif",
-    "etopo_bed_60": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
-    "etopo1_grd": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/ice_surface/grid_registered/netcdf/ETOPO1_Ice_g_gmt4.grd.gz",
-    "etopo1_tif": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/image/color_etopo1_ice_low.tif.gz",
-    "topography": "https://repo.gplates.org/webdav/pmm/present-day-rasters/topo15-3601x1801.nc.gz",
-    "agegrid": "https://repo.gplates.org/webdav/pmm/present-day-rasters/agegrid.tiff.gz",
-    "vgg": {
-        "fullname": "Vertical Gravity Gradient",
-        "server_url": "https://geoserver.gplates.org/geoserver/wms",
-        "service": "WMS",
-        "version": "1.1.0",
-        "layers": [
-            "gplates:vertical-gravity-gradient"
-        ],
-        "hillshade_layer": "gplates:vgg-hillshade-intensity",
-        "styles": [
-            "vgg-grey-style"
-        ],
-        "hillshade_style": "vgg-hillshade-style",
-        "bbox": [
-            -180,
-            -80,
-            180,
-            80
-        ],
-        "srs": "EPSG:4326"
-    }
+    "ETOPO 2022 Bedrock (60 arc seconds)": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_bed_elev_gtif/ETOPO_2022_v1_60s_N90W180_bed.tif",
+    "ETOPO 2022 Ice (60 arc seconds)": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/60s/60s_surface_elev_gtif/ETOPO_2022_v1_60s_N90W180_surface.tif",
+    "ETOPO 2022 Bedrock (30 arc seconds)": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/30s/30s_bed_elev_gtif/ETOPO_2022_v1_30s_N90W180_bed.tif",
+    "ETOPO 2022 Ice (30 arc seconds)": "https://www.ngdc.noaa.gov/mgg/global/relief/ETOPO2022/data/30s/30s_surface_elev_gtif/ETOPO_2022_v1_30s_N90W180_surface.tif"
 }
