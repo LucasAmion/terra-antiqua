@@ -14,6 +14,7 @@
 		<file alias="raster_layers_icon.png">resources/raster_layers_icon.png</file>
 		<file alias="arrow_up.png">resources/arrow_up.png</file>
 		<file alias="arrow_down.png">resources/arrow_down.png</file>
+		<file alias="empty_json.json">resources/empty_json.json</file>
 		<file alias="set_pls_icon.png">resources/set_pls_icon.png</file>
 		<file alias="feat_create_icon.png">resources/feat_create_icon.png</file>
 		<file alias="addButton.png">resources/addButton.png</file>

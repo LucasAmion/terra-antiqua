@@ -25,7 +25,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
         raster_type = self.dlg.rasterType.currentText()
         if raster_type == "Topography":
             reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
-            raster = self.dlg.inputRaster.currentText()
+            raster = self.dlg.inputRaster.currentData(QtCore.Qt.UserRole)
             local = raster == 'Local'
             if local:
                 local_layer = self.dlg.localLayer.currentLayer()
@@ -85,15 +85,16 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         self.feedback.error("There was an error while downloading the input raster.")
                         self.kill()
                 try:
+                    self.feedback.info("Reading input raster...")
                     data = gdal.Open(local_layer.dataProvider().dataSourceUri())
                     data = data.GetRasterBand(1).ReadAsArray()
                     input_extent = local_layer.extent()
                     input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
                     topo_raster = gplately.Raster(data=data, extent=input_extent)
+                    self.feedback.progress += 10
                 except Exception:
                     self.feedback.error("There was an error while reading the input raster.")
                     self.kill()
-                    
                     
             # Resampling to desired resolution
             if not self.killed:
@@ -102,7 +103,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     if resampling:
                         self.feedback.info("Resampling...")
                         topo_raster.resample(resampling_resolution, resampling_resolution, method=interpolationMethod, inplace=True)
-                    self.feedback.progress += 20
+                    self.feedback.progress += 10
                 except Exception:
                     self.feedback.error("There was an error while resampling the input raster.")
                     self.kill()
@@ -117,7 +118,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         topo_raster.reconstruct(reconstruction_time, threads=n_threads, inplace=True,
                                             partitioning_features=partitioning_features)
                         self.feedback.info("Reconstruction finished.")
-                    self.feedback.progress += 30
+                    self.feedback.progress += 20
                 except Exception:
                     self.feedback.error("There was an error while reconstructing raster to the desired age.")
                     self.kill()
@@ -175,7 +176,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
             if not self.killed:
                 try:
                     self.feedback.info("Starting reconstruction...")
-                    run_paleo_age_grids(model_name, cache_manager.model_data_dir, self.temp_dir, self.feedback,
+                    model_dir = cache_manager.get_model(model_name).get_model_dir()
+                    run_paleo_age_grids(model_name, model_dir, self.temp_dir, self.feedback,
                                         start_time, end_time, time_step, resolution, minlon, maxlon,
                                         minlat, maxlat, n_threads, spreading_rate)
                     path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")

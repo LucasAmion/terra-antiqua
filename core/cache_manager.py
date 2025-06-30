@@ -16,6 +16,13 @@ class TaCacheManager:
     layers_allowed_extensions = ["*.gpml", "*.gpmlz", "*.gpml.gz", "*.dat", "*.pla", "*.shp", "*.geojson", "*.json", "*.gpkg", "*.gmt", "*.vgp"]
     
     possible_layers = ["Topologies", "Coastlines", "COBs", "StaticPolygons", "ContinentalPolygons"]
+    
+    available_rasters = {
+        "ETOPO 2022 Bedrock (60 arc seconds)": "etopo_bed_60",
+        "ETOPO 2022 Ice Surface (60 arc seconds)": "etopo_ice_60",
+        "ETOPO 2022 Bedrock (30 arc seconds)": "etopo_bed_30",
+        "ETOPO 2022 Ice Surface (30 arc seconds)": "etopo_ice_30"
+    }
 
     def __init__(self):
         data_dir = user_data_dir("QGIS3", "QGIS")
@@ -142,6 +149,8 @@ class TaCacheManager:
         model = self.get_model(model_name)
         
         rotation_model = model.get_rotation_model()
+        if self.is_model_custom(model_name) and feedback:
+            feedback.debug(f"Model '{model_name}' available locally, no need to download.")
         if feedback: feedback.progress += 10
         
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
@@ -158,7 +167,9 @@ class TaCacheManager:
         for layer in layers:
             if layer in self.possible_layers:
                 model.get_layer(layer, return_none_if_not_exist=True)
-                if feedback: feedback.progress += 10
+                if self.is_model_custom(model_name) and feedback:
+                    feedback.debug(f"Layer '{layer}' for model '{model_name}' available locally, no need to download.")
+                if feedback: feedback.progress += 5
         
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
     
@@ -168,10 +179,11 @@ class TaCacheManager:
     
     def get_available_rasters(self):
         """Return a list of available rasters."""
-        return self.raster_manager.list_present_day_rasters()
+        return self.available_rasters.keys()
     
     def is_raster_available_locally(self, raster_name):
         """Check if a raster is already downloaded."""
+        raster_name = self.available_rasters[raster_name]
         downloader = FileDownloader(
             self.raster_manager.rasters[raster_name],
             f"{self.raster_data_dir}/{raster_name}/.metadata.json",
@@ -182,6 +194,7 @@ class TaCacheManager:
     
     def download_raster(self, raster, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
+        raster = self.available_rasters[raster]
         output_filename = self.raster_manager.get_raster(raster)
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
         
@@ -189,12 +202,14 @@ class TaCacheManager:
     
     def delete_raster(self, raster_name):
         """Delete a raster from the local storage."""
+        raster_name = self.available_rasters[raster_name]
         raster_path = os.path.join(self.raster_data_dir, raster_name)
         if os.path.exists(raster_path):
             shutil.rmtree(raster_path)
     
     def get_raster_path(self, raster_name):
         """Get the local path of a raster."""
+        raster_name = self.available_rasters[raster_name]
         raster_path = os.path.join(self.raster_data_dir, raster_name)
         if os.path.exists(raster_path):
             return raster_path

@@ -73,8 +73,18 @@ class TaReconstructRastersDlg(TaBaseDialog):
         ## Input raster:
         self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
                                                     "Input raster:")
-        self.inputRaster.addItems(cache_manager.get_available_rasters())
+        raster_list = cache_manager.get_available_rasters()
+        for raster in raster_list:
+            self.inputRaster.addItem(raster)
+            symbol, tooltip = cache_manager.get_icon_and_tooltip(raster)
+            display_text = f"{raster} {symbol}"
+            index = self.inputRaster.count() - 1
+            self.inputRaster.setItemData(index, display_text, QtCore.Qt.DisplayRole)
+            self.inputRaster.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
+            self.inputRaster.setItemData(index, raster, QtCore.Qt.UserRole)
         self.inputRaster.addItem('Local')
+        index = self.inputRaster.count() - 1
+        self.inputRaster.setItemData(index, 'Local', QtCore.Qt.UserRole)
         
         self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
                                                    "Select a local raster layer:")
