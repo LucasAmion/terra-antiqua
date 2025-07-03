@@ -3,13 +3,18 @@
 #Full copyright notice in file: terra_antiqua.py
 
 from osgeo import gdal
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
 from .utils import clipArrayToExtent, convertAgeToDepth
 from .cache_manager import cache_manager
 
-from agegrid.run_paleo_age_grids import run_paleo_age_grids
+try:
+    from agegrid.run_paleo_age_grids import run_paleo_age_grids
+except Exception:
+    QtWidgets.QMessageBox.warning(None, "Terra Antiqua - GMT not found",
+                                        "Make sure you have GMT installed in your system and add it to path, otherwise the Bathymetry/Agegrid reconstruction feature won't be available. "
+                                        'You can follow the instructions on this page if you do not know how to do it: <a href="https://github.com/LucasAmion/terra-antiqua?tab=readme-ov-file#windows">https://github.com/LucasAmion/terra-antiqua?tab=readme-ov-file#windows</a>')
 
 import gplately
 import os

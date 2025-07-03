@@ -37,7 +37,16 @@ class TaReconstructRastersDlg(TaBaseDialog):
         # Raster Type:
         self.rasterType = self.addMandatoryParameter(QComboBox,
                                                      "Type of raster to reconstruct:")
-        self.rasterType.addItems(['Topography', 'Agegrid'])
+        self.rasterType.addItem('Topography')
+        self.rasterType.addItem('Agegrid')
+        
+        try:
+            from agegrid.run_paleo_age_grids import run_paleo_age_grids
+        except Exception:
+            index = self.rasterType.findText('Agegrid')
+            self.rasterType.model().item(index).setEnabled(False)
+            self.rasterType.setItemData(index, "GMT not available. Agegrid reconstruction is disabled.", QtCore.Qt.ToolTipRole)
+        
         self.rasterType.currentTextChanged.connect(self.reloadHelp)
         
         # Rotation Model:
