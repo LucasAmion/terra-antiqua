@@ -3,7 +3,8 @@
 #Full copyright notice in file: terra_antiqua.py
 
 from osgeo import gdal
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
+
 from qgis.core import QgsRasterLayer
 from .base_algorithm import TaBaseAlgorithm
 from .utils import clipArrayToExtent, convertAgeToDepth
@@ -18,6 +19,7 @@ except Exception:
 
 import gplately
 import os
+import shutil
 
 class TaReconstructRasters(TaBaseAlgorithm):
 
@@ -47,6 +49,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             resolution = self.dlg.resolution.value()
             convert = self.dlg.convertToBathymetry.isChecked()
             spreading_rate = self.dlg.spreading_rate.value()
+            save_all = self.dlg.saveAll.isChecked()
             
         minlon = self.dlg.minlon.value()
         maxlon = self.dlg.maxlon.value()
@@ -181,52 +184,69 @@ class TaReconstructRasters(TaBaseAlgorithm):
             if not self.killed:
                 try:
                     self.feedback.info("Starting reconstruction...")
+                    masked_dir = os.path.join(self.temp_dir, "grid_files", "masked")
+                    for filename in os.listdir(masked_dir):
+                        file_path = os.path.join(masked_dir, filename)
+                        if os.path.isfile(file_path):
+                            os.unlink(file_path)
                     model_dir = cache_manager.get_model(model_name).get_model_dir()
                     run_paleo_age_grids(model_name, model_dir, self.temp_dir, self.feedback,
                                         start_time, end_time, time_step, resolution, minlon, maxlon,
                                         minlat, maxlat, n_threads, spreading_rate)
-                    path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
-                    agegrid = gplately.Raster(data=path)
                     self.feedback.info("Reconstruction finished.")
                 except Exception:
                     self.feedback.error("There was an error while performing the reconstuction.")
                     self.kill()
+            
+            # Reading the resulting raster or rasters
+            if not self.killed:
+                agegrids = []
+                if save_all:
+                    path = os.path.join(self.temp_dir, "grid_files", "masked")
+                    for filename in os.listdir(path):
+                        file_path = os.path.join(path, filename)
+                        if os.path.isfile(file_path):
+                            agegrids.append(gplately.Raster(data=file_path))
+                else:
+                    path = os.path.join(self.temp_dir, "grid_files", "masked", f"{model_name}_seafloor_age_mask_{end_time}.0Ma.nc")
+                    agegrids.append(gplately.Raster(data=path))
             
             # Converting ocean age to bathymetry
             if convert:
                 if not self.killed:
                     try:
                         self.feedback.info("Converting ocean age to bathymetry...")
-                        agegrid._data = convertAgeToDepth(agegrid._data, 0, 0)
-                        self.feedback.progress += 5
+                        for agegrid in agegrids:
+                            agegrid._data = convertAgeToDepth(agegrid._data, 0, 0)
+                            self.feedback.progress += 5
                     except Exception:
                         self.feedback.error("There was an error while converting age raster to bathymetry.")
                         self.kill()
-                
+            
             # Exporting result as NetCDF file
             if not self.killed:
-                if os.path.exists(output_path):
+                if save_all:
                     try:
-                        os.unlink(output_path)
-                    except Exception:
-                        self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
-                        self.kill()
-                if not self.killed:
-                    try:
-                        agegrid.save_to_netcdf4(output_path)
+                        if not os.path.exists(output_path):
+                            os.makedirs(output_path)
+                        for agegrid in agegrids:
+                            filename = agegrid.filename.rsplit('_', 1)[-1]
+                            agegrid.save_to_netcdf4(os.path.join(output_path, filename))
+                        self.feedback.info(f"All agegrid files saved to the output folder {output_path}.")
+                        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(output_path))
+                        self.feedback.progress = 100
+                        self.finished.emit(True, None)
                     except Exception:
                         self.feedback.error("There was an error while exporting the result to NetCDF.")
                         self.kill()
+                else:
+                    agegrids[0].save_to_netcdf4(output_path)
+                    rlayer = QgsRasterLayer(output_path, "Temp layer", "gdal")
+                    if not rlayer.isValid():
+                        self.feedback.error("Layer failed to load!")
+                        self.kill()
+                        self.finished.emit(False, "")
+                    else:
+                        self.finished.emit(True, output_path)
+                        self.feedback.progress = 100
         
-        # Saving the result
-        rlayer = QgsRasterLayer(output_path, "Temp layer", "gdal")
-        
-        if self.killed:
-            self.finished.emit(False, "")
-        elif not rlayer.isValid():
-            self.feedback.error("Layer failed to load!")
-            self.kill()
-            self.finished.emit(False, "")
-        else:
-            self.finished.emit(True, output_path)
-            self.feedback.progress = 100

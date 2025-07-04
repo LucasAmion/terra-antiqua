@@ -4,7 +4,7 @@
 
 from PyQt5.QtWidgets import QComboBox
 from PyQt5 import QtCore
-from qgis.gui import QgsDoubleSpinBox
+from qgis.gui import QgsDoubleSpinBox, QgsFileWidget
 from .base_dialog import TaBaseDialog
 from .widgets import TaSpinBox, TaCheckBox,TaRasterLayerComboBox
 from ..core.cache_manager import cache_manager
@@ -169,6 +169,11 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.timeStep.setDataType("integer")
         self.timeStep.spinBox.setMinimum(1)
         
+        ## Save all
+        self.saveAll = self.addVariantParameter(TaCheckBox, "Agegrid",
+                                                "Save all time steps:")
+        self.saveAll.setChecked(False)
+               
         ## Spatial Resolution
         self.resolution = self.addVariantParameter(QgsDoubleSpinBox,
                                                    "Agegrid",
@@ -248,17 +253,30 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 reconstruction_time = self.reconstruction_time.spinBox.value()
             elif raster_type == "Agegrid":
                 reconstruction_time = self.endTime.spinBox.value()
+                start_time= self.startTime.spinBox.value()
                 if self.convertToBathymetry.isChecked():
                     raster_type = "Bathymetry"
             model_name = self.modelName.currentData(QtCore.Qt.UserRole)
-            path = os.path.join(tempfile.gettempdir(),
-                                f"{raster_type}_{reconstruction_time}.0_{model_name}.nc")
-            self.outputPath.lineEdit().setPlaceholderText(path)
-            self.outputPath.setFilter('*.nc')
-        
+            if self.saveAll.isChecked():
+                self.outputPathLabel.setText('Output folder:')
+                self.outputPath.setStorageMode(QgsFileWidget.StorageMode.GetDirectory)
+                path = os.path.join(tempfile.gettempdir(),
+                                    f"{raster_type}_{start_time}.0-{reconstruction_time}.0_{model_name}")
+                self.outputPath.lineEdit().setPlaceholderText(path)
+                self.outputPath.setFilter('')
+            else:
+                self.outputPathLabel.setText('Output file path:')
+                self.outputPath.setStorageMode(QgsFileWidget.StorageMode.SaveFile)
+                path = os.path.join(tempfile.gettempdir(),
+                                    f"{raster_type}_{reconstruction_time}.0_{model_name}.nc")
+                self.outputPath.lineEdit().setPlaceholderText(path)
+                self.outputPath.setFilter('*.nc')
+                       
         self.rasterType.currentTextChanged.connect(update_output_path)
         self.modelName.currentTextChanged.connect(update_output_path)
         self.reconstruction_time.spinBox.valueChanged.connect(update_output_path)
+        self.startTime.spinBox.valueChanged.connect(update_output_path)
         self.endTime.spinBox.valueChanged.connect(update_output_path)
         self.convertToBathymetry.stateChanged.connect(update_output_path)
+        self.saveAll.stateChanged.connect(update_output_path)
         self.setDefaultOutFilePath = update_output_path
