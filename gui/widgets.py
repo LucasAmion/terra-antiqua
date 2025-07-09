@@ -212,20 +212,26 @@ class TaVectorLayerComboBox(TaMapLayerComboBox):
 
 
 class TaSpinBox(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, label=None):
         super(TaSpinBox, self).__init__()
-        self.layout = QtWidgets.QHBoxLayout()
+        self.vlayout = QtWidgets.QVBoxLayout()
+        self.vlayout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
+        if label:
+            self.label = QtWidgets.QLabel(label)
+            self.vlayout.addWidget(self.label)
+        self.hlayout = QtWidgets.QHBoxLayout()
         self.spinBox = QgsSpinBox()
         self.spinBox.setMinimum(-12000)
         self.spinBox.setMaximum(12000)
         self.spinBox.setClearValue(0)
         self.overrideButton = QgsPropertyOverrideButton(self)
         self.overrideButton.registerEnabledWidget(self.spinBox, False)
-        self.layout.addWidget(self.spinBox)
-        self.layout.addWidget(self.overrideButton)
-        self.layout.setSpacing(6)
-        self.layout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
-        self.setLayout(self.layout)
+        self.hlayout.addWidget(self.spinBox)
+        self.hlayout.addWidget(self.overrideButton)
+        self.hlayout.setSpacing(6)
+        self.hlayout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
+        self.vlayout.addLayout(self.hlayout)
+        self.setLayout(self.vlayout)
         self.dataType = None
         self.spinBox.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
         self.initOverrideButton("generalProperty", "Blank property")

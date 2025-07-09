@@ -98,21 +98,45 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
                                                    "Select a local raster layer:")
         
+        ## Create sequence:
+        self.createSequence = self.addVariantParameter(TaCheckBox, "Topography",
+                                                       "Create sequence of rasters:")
+        self.createSequence.setChecked(False)
+        
+        ## Start time:
+        self.topoStartTime = self.addVariantParameter(TaSpinBox, "Topography",
+                                                  "Start time (in Ma):")
+        self.topoStartTime.setDataType("integer")
+        def set_minimum_start_time():
+            model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentData(QtCore.Qt.UserRole))
+            self.topoStartTime.spinBox.setMinimum(model_smalltime)
+        set_minimum_start_time()
+        self.modelName.currentIndexChanged.connect(set_minimum_start_time)
+        
         ## Reconstruction time:
         self.reconstruction_time = self.addVariantParameter(TaSpinBox, "Topography",
                                                             "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
         def set_minimum_reconstruction_time():
-            model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentData(QtCore.Qt.UserRole))
-            self.reconstruction_time.spinBox.setMinimum(model_smalltime)
+            if self.createSequence.isChecked():
+                self.reconstruction_time.spinBox.setMinimum(self.topoStartTime.spinBox.value() + 1)
+            else:
+                model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentData(QtCore.Qt.UserRole))
+                self.reconstruction_time.spinBox.setMinimum(model_smalltime)
         set_minimum_reconstruction_time()
+        self.topoStartTime.spinBox.valueChanged.connect(set_minimum_reconstruction_time)
         self.modelName.currentIndexChanged.connect(set_minimum_reconstruction_time)
-        self.reconstruction_time.spinBox.setMinimum(0)
         def set_maximum_reconstruction_time():
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)
         set_maximum_reconstruction_time()
         self.modelName.currentIndexChanged.connect(set_maximum_reconstruction_time)
+        
+        ## Time step:
+        self.topoTimeStep = self.addVariantParameter(TaSpinBox, "Topography",
+                                                 "Time step (in Ma):")
+        self.topoTimeStep.setDataType("integer")
+        self.topoTimeStep.spinBox.setMinimum(1)
         
         ## Resampling:
         self.resampling = self.addVariantParameter(TaCheckBox,
@@ -246,18 +270,33 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.rasterType.currentTextChanged.connect(input_raster_changed)
         input_raster_changed()
         
+        # Hide topoStartTime and topoTimeStep if not creating a sequence
+        def on_create_sequence_state_changed(state):
+            set_minimum_reconstruction_time()
+            if state == QtCore.Qt.Checked:
+                self.topoStartTime.show()
+                self.reconstruction_time.label.setText("End time (in Ma):")
+                self.topoTimeStep.show()
+            else:
+                self.topoStartTime.hide()
+                self.reconstruction_time.label.setText("Reconstruction time (in Ma):")
+                self.topoTimeStep.hide()
+        self.createSequence.stateChanged.connect(on_create_sequence_state_changed)
+        on_create_sequence_state_changed(True)
+        
         # Update output path when parameters change
         def update_output_path(_):
             raster_type = self.rasterType.currentText()
             if raster_type == "Topography":
                 reconstruction_time = self.reconstruction_time.spinBox.value()
+                start_time = self.topoStartTime.spinBox.value()
             elif raster_type == "Agegrid":
                 reconstruction_time = self.endTime.spinBox.value()
-                start_time= self.startTime.spinBox.value()
+                start_time = self.startTime.spinBox.value()
                 if self.convertToBathymetry.isChecked():
                     raster_type = "Bathymetry"
             model_name = self.modelName.currentData(QtCore.Qt.UserRole)
-            if self.saveAll.isChecked():
+            if self.saveAll.isChecked() or self.createSequence.isChecked():
                 self.outputPathLabel.setText('Output folder:')
                 self.outputPath.setStorageMode(QgsFileWidget.StorageMode.GetDirectory)
                 path = os.path.join(tempfile.gettempdir(),
@@ -274,7 +313,10 @@ class TaReconstructRastersDlg(TaBaseDialog):
                        
         self.rasterType.currentTextChanged.connect(update_output_path)
         self.modelName.currentTextChanged.connect(update_output_path)
+        self.createSequence.stateChanged.connect(update_output_path)
+        self.topoStartTime.spinBox.valueChanged.connect(update_output_path)
         self.reconstruction_time.spinBox.valueChanged.connect(update_output_path)
+        self.topoTimeStep.spinBox.valueChanged.connect(update_output_path)
         self.startTime.spinBox.valueChanged.connect(update_output_path)
         self.endTime.spinBox.valueChanged.connect(update_output_path)
         self.convertToBathymetry.stateChanged.connect(update_output_path)

@@ -31,7 +31,7 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
         # Downloading rotation model and input layer if needed
         if not self.killed:
             try:
-                self.feedback.info(f"Downloading {model_name} rotation model...")
+                self.feedback.info(f"Downloading {model_name} rotation model if needed...")
                 rotation_model = cache_manager.download_model(model_name, self.feedback)
                 
             except Exception:
@@ -44,7 +44,7 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
                     self.feedback.info("Reading local input layer...")
                     layer = local_layer.dataProvider().dataSourceUri()
                 else:
-                    self.feedback.info(f"Downloading {model_name} associated vector layers...")
+                    self.feedback.info(f"Downloading {model_name} associated vector layers if needed...")
                     cache_manager.download_all_layers(model_name, self.feedback)
                     layer = cache_manager.get_layer(model_name, layer_type.replace(' ', ''), self.feedback)
                 
@@ -58,7 +58,7 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
                 try:
                     os.unlink(output_path)
                 except Exception:
-                    self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used. Check if the layer has already been added to the project.")
+                    self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used.")
                     self.kill()
         
         # Reconstructing vector layer to desired age
