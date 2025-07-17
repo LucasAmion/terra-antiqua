@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QComboBox
 from PyQt5 import QtCore
 from qgis.gui import QgsDoubleSpinBox, QgsFileWidget
 from .base_dialog import TaBaseDialog
-from .widgets import TaSpinBox, TaCheckBox,TaRasterLayerComboBox
+from .widgets import TaSpinBox, TaCheckBox, TaRasterLayerComboBox
 from ..core.cache_manager import cache_manager
 import tempfile
 import os

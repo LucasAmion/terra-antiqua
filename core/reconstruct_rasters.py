@@ -184,6 +184,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                             except Exception:
                                 self.feedback.error(f"Cannot save output file {output_path}. There is a file with the same name which is currently being used.")
                                 self.kill()
+                        rasters = [topo_raster]
                         rasters[0].save_to_netcdf4(output_path)
                 except Exception:
                     self.feedback.error("There was an error while exporting the result to NetCDF.")

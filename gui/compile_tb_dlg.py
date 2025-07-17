@@ -6,7 +6,7 @@
 # -*- coding: utf-8 -*-
 import os
 from PyQt5 import QtWidgets, QtCore
-from qgis.core import QgsMapLayerProxyModel, QgsProject, QgsRasterLayer, Qgis
+from qgis.core import QgsMapLayerProxyModel, QgsProject, QgsRasterLayer
 from qgis.gui import (
     QgsMapLayerComboBox,
     QgsDoubleSpinBox, QgsGroupBoxCollapseButton
@@ -16,8 +16,7 @@ from .widgets import (
     TaVectorLayerComboBox,
     TaTableWidget,
     TaButtonGroup,
-    TaCheckBox,
-    TaColorSchemeWidget
+    TaCheckBox
 )
 
 class TaCompileTopoBathyDlg(TaBaseDialog):
@@ -61,7 +60,6 @@ class TaCompileTopoBathyDlg(TaBaseDialog):
        self.bufferDistanceForRemoveOverlapBath = self.addAdvancedParameter(QgsDoubleSpinBox, "Buffer distance (In map units):")
 
        self.maskComboBox.layerChanged.connect(self.onLayerChange)
-       self.maskComboBox.setFilters(Qgis.LayerFilter.RasterLayer)
        self.removeOverlapBathyCheckBox.registerEnabledWidgets([self.maskComboBox,
                                                                self.bufferDistanceForRemoveOverlapBath])
        self.removeOverlapBathyCheckBox.stateChanged.connect(self.onRemoveOverlapCheckBoxStateChange)

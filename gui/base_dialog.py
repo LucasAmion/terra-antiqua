@@ -5,21 +5,28 @@
 
 import os
 import webbrowser as wb
+from appdirs import user_data_dir
+import json
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
     QShortcut,
-    QSizePolicy
+    QSizePolicy,
+    QAbstractSpinBox,
+    QComboBox,
+    QCheckBox
 )
 from qgis.gui import (
     QgsFileWidget,
     QgsMessageBar,
     QgsCollapsibleGroupBox
 )
+from qgis.core import QgsProject
 from ..core.logger import TaFeedback
 from .template_dialog import TaTemplateDialog
+from .widgets import TaSpinBox, TaAbstractMapLayerComboBox
 
 
 class TaBaseDialog(TaTemplateDialog):
@@ -170,6 +177,52 @@ class TaBaseDialog(TaTemplateDialog):
 
         if len(self.advanced_parameters)>0:
             self.appendAdvancedWidgets()
+        
+        # Get the values of each parameter from the settings file
+        data_dir = user_data_dir("QGIS3", "QGIS")
+        settings_path = os.path.join(data_dir, "plugins", "terra_antiqua", 'settings.json')
+        
+        try:
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings_dict = json.load(f)
+        except Exception:
+            settings_dict = {}
+
+        class_name = self.__class__.__name__
+        settings_dict.setdefault(class_name, {})
+        
+        parameters = self.parameters
+        parameters.extend(self.mandatory_parameters)
+        parameters.extend([param for param, _ in self.advanced_parameters])
+        parameters.extend([param for param, _, _ in self.variant_parameters])
+        
+        # Create a mapping from parameter objects to their attribute names
+        param_to_attr_name = {}
+        for attr_name in dir(self):
+            attr_value = getattr(self, attr_name)
+            if attr_value in self.parameters:
+                param_to_attr_name[attr_value] = attr_name
+                
+        for parameter in self.parameters:
+            param_name = param_to_attr_name.get(parameter, parameter.objectName())
+            if isinstance(parameter, TaSpinBox):
+                if param_name in settings_dict[class_name]:
+                    parameter.spinBox.setValue(settings_dict[class_name][param_name])
+            elif isinstance(parameter, QAbstractSpinBox):
+                if param_name in settings_dict[class_name]:
+                    parameter.setValue(settings_dict[class_name][param_name])
+            elif isinstance(parameter, QComboBox):
+                if param_name in settings_dict[class_name]:
+                    parameter.setCurrentIndex(settings_dict[class_name][param_name])
+            elif isinstance(parameter, QCheckBox):
+                if param_name in settings_dict[class_name]:
+                    parameter.setChecked(settings_dict[class_name][param_name])
+            elif isinstance(parameter, TaAbstractMapLayerComboBox):
+                if param_name in settings_dict[class_name] and settings_dict[class_name][param_name]:
+                    layer_id = settings_dict[class_name][param_name]
+                    layer = QgsProject.instance().mapLayer(layer_id)
+                    if layer:
+                        parameter.setCurrentLayer(layer)
 
         if add_output_path:
             self.outputPath = QgsFileWidget()
@@ -184,6 +237,7 @@ class TaBaseDialog(TaTemplateDialog):
         for parameter in self.mandatory_parameters:
             if type(parameter).__name__ == 'TaAbstractMapLayerComboBox':
                 parameter.layerChanged.connect(self.checkMandatoryParameters)
+
     def appendVariantWidgets(self):
         for param, variant_index, mandatory in self.variant_parameters:
             self.paramsLayout.addWidget(param)
@@ -350,6 +404,47 @@ class TaBaseDialog(TaTemplateDialog):
         self.tabWidget.setCurrentIndex(0)
 
     def closeEvent(self, event):
+        # Save the current settings to a json file
+        data_dir = user_data_dir("QGIS3", "QGIS")
+        settings_path = os.path.join(data_dir, "plugins", "terra_antiqua", 'settings.json')
+        
+        try:
+            with open(settings_path, 'r', encoding='utf-8') as f:
+                settings_dict = json.load(f)
+        except Exception:
+            settings_dict = {}
+
+        class_name = self.__class__.__name__
+        settings_dict.setdefault(class_name, {})
+        
+        parameters = self.parameters
+        parameters.extend(self.mandatory_parameters)
+        parameters.extend([param for param, _ in self.advanced_parameters])
+        parameters.extend([param for param, _, _ in self.variant_parameters])
+        
+        # Create a mapping from parameter objects to their attribute names
+        param_to_attr_name = {}
+        for attr_name in dir(self):
+            attr_value = getattr(self, attr_name)
+            if attr_value in self.parameters:
+                param_to_attr_name[attr_value] = attr_name
+        
+        for parameter in self.parameters:
+            param_name = param_to_attr_name.get(parameter, parameter.objectName())
+            if isinstance(parameter, TaSpinBox):
+                settings_dict[class_name][param_name] = parameter.spinBox.value()
+            elif isinstance(parameter, QAbstractSpinBox):
+                settings_dict[class_name][param_name] = parameter.value()
+            elif isinstance(parameter, QComboBox):
+                settings_dict[class_name][param_name] = parameter.currentIndex()
+            elif isinstance(parameter, QCheckBox):
+                settings_dict[class_name][param_name] = parameter.isChecked()
+            elif issubclass(type(parameter), TaAbstractMapLayerComboBox):
+                settings_dict[class_name][param_name] = parameter.currentLayer().id() if parameter.currentLayer() else None
+
+        with open(settings_path, 'w', encoding='utf-8') as f:
+            json.dump(settings_dict, f, indent=4, ensure_ascii=False)
+        
         self.logBrowser.clear()
         self.deleteLater()
         self = None
