@@ -3,6 +3,8 @@
 #Full copyright notice in file: terra_antiqua.py
 
 import os
+import json
+from appdirs import user_data_dir
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from PyQt5 import QtCore
@@ -13,6 +15,9 @@ class TaWelcomeDialog(QtWidgets.QDialog):
         super(TaWelcomeDialog, self).__init__(parent)
         self.setGeometry(200, 200, 700, 300)
         center_window(self)
+        
+        data_dir = user_data_dir("QGIS3", "QGIS")
+        self.settings_path = os.path.join(data_dir, "plugins", "terra_antiqua", 'settings.json')
         
         self.logo = QtGui.QIcon(':/logo.png')
         self.toolButton = QtWidgets.QToolButton(self)
@@ -49,37 +54,31 @@ class TaWelcomeDialog(QtWidgets.QDialog):
         self.close()
 
     def isShowable(self):
-        settings_file = os.path.join(os.path.dirname(__file__), '../resources/settings.txt')
-        with open(settings_file, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-
-        for current,line in enumerate(lines):
-            line = line.strip()
-            if line == 'WELCOME_PAGE':
-                settings_line = lines[current+1].strip()
-                setting = settings_line.split(':')[1]
-                if setting == 'hide':
-                    self.showAgain = False
-                else:
-                    self.showAgain = True
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as f:
+                settings_dict = json.load(f)
+        except Exception:
+            settings_dict = {}
+            
+        if 'WelcomePage' not in settings_dict:
+            self.showAgain = True
+        else:
+            self.showAgain = settings_dict['WelcomePage'].get('showAgain', True)
 
     def setShowable(self, value):
-        data_out = None
-        settings_file = os.path.join(os.path.dirname(__file__), '../resources/settings.txt')
-        if value:
-            with  open(settings_file, 'r', encoding='utf-8') as f:
-                data = f.read()
-                if not self.showAgain:
-                    data_out = data.replace('show_again:hide','show_again:show')
-        else:
-            with  open(settings_file, 'r', encoding='utf-8') as f:
-                data = f.read()
-                if self.showAgain:
-                    data_out = data.replace('show_again:show', 'show_again:hide')
-
-        with open(settings_file, 'w', encoding='utf-8') as f:
-            f.write(data_out)
-
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as f:
+                settings_dict = json.load(f)
+        except Exception:
+            settings_dict = {}
+        
+        if 'WelcomePage' not in settings_dict:
+            settings_dict['WelcomePage'] = {}
+        
+        settings_dict['WelcomePage']['showAgain'] = value
+        
+        with open(self.settings_path, 'w', encoding='utf-8') as f:
+            json.dump(settings_dict, f, indent=4)
 
 
 if __name__=='__main__':

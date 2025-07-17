@@ -3,6 +3,8 @@
 #Full copyright notice in file: terra_antiqua.py
 
 import os
+import json
+from appdirs import user_data_dir
 from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets
 from PyQt5 import uic
@@ -25,37 +27,38 @@ class TaRemoveArtefactsTooltip(QtWidgets.QDialog, FORM_CLASS):
         #self.setWindowFlags(Qt.WindowCloseButtonHint, False)
 
         # List comparison operators.TypeBox
+        
+        data_dir = user_data_dir("QGIS3", "QGIS")
+        self.settings_path = os.path.join(data_dir, "plugins", "terra_antiqua", 'settings.json')
 
         self.showAgain = None
         self.isShowable()
 
         loadHelp(self)
 
-
     def isShowable(self):
-        settings_file = os.path.join(os.path.dirname(__file__), '../resources/settings.txt')
-        with open(settings_file, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as f:
+                settings_dict = json.load(f)
+        except Exception:
+            settings_dict = {}
 
-        for current,line in enumerate(lines):
-            line = line.strip()
-            if line == 'REMOVE_ARTEFACTS':
-                settings_line = lines[current+1].strip()
-                setting = settings_line.split(':')[1]
-                if setting == 'hide':
-                    self.showAgain = False
-                else:
-                    self.showAgain = True
+        if 'RemoveArtefactsTooltip' not in settings_dict:
+            self.showAgain = True
+        else:
+            self.showAgain = settings_dict['RemoveArtefactsTooltip'].get('showAgain', True)
 
     def setShowable(self, value):
-        data_out = None
-        settings_file = os.path.join(os.path.dirname(__file__), '../resources/settings.txt')
-        if value:
-            pass
-        else:
-            with  open(settings_file, 'r', encoding='utf-8') as f:
-                data = f.read()
-                data_out = data.replace('first_help:show', 'first_help:hide')
+        try:
+            with open(self.settings_path, 'r', encoding='utf-8') as f:
+                settings_dict = json.load(f)
+        except Exception:
+            settings_dict = {}
 
-            with open(settings_file, 'w', encoding='utf-8') as f:
-                f.write(data_out)
+        if 'RemoveArtefactsTooltip' not in settings_dict:
+            settings_dict['RemoveArtefactsTooltip'] = {}
+
+        settings_dict['RemoveArtefactsTooltip']['showAgain'] = value
+
+        with open(self.settings_path, 'w', encoding='utf-8') as f:
+            json.dump(settings_dict, f, indent=4, ensure_ascii=False)

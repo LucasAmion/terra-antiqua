@@ -22,7 +22,6 @@
 		<file alias="arrow_right.png">resources/arrow_right.png</file>
 		<file alias="removeButton.png">resources/removeButton.png</file>
 		<file alias="open.svg">resources/open.svg</file>
-		<file alias="settings.txt">resources/settings.txt</file>
 		<file alias="modify_tb_icon.png">resources/modify_tb_icon.png</file>
 		<file alias="vector_layers_icon.svg">resources/vector_layers_icon.svg</file>
 		<file alias="compile_tb_icon.png">resources/compile_tb_icon.png</file>
