@@ -140,8 +140,8 @@ class TaReconstructRasters(TaBaseAlgorithm):
                             self.feedback.info("Starting reconstruction...")
                             topo_raster.reconstruct(reconstruction_time, threads=n_threads, inplace=True,
                                                 partitioning_features=partitioning_features)
-                            rasters = [topo_raster]
                             self.feedback.info("Reconstruction finished.")
+                        rasters = [topo_raster]
                         self.feedback.progress += 20
                 except Exception:
                     self.feedback.error("There was an error while reconstructing raster to the desired age.")
