@@ -29,12 +29,16 @@ class TaCacheManager:
         self.model_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "models")
         self.raster_data_dir = os.path.join(data_dir, "plugins", "terra_antiqua", "rasters")
         
+        # Create directories if they don't exist
+        os.makedirs(self.model_data_dir, exist_ok=True)
+        os.makedirs(self.raster_data_dir, exist_ok=True)
+        
         try:
             self.pm_manager = PlateModelManager()
-            self.raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
+            self.raster_manager = PresentDayRasterManager(raster_manifest=os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
         except ServerUnavailable:
             self.pm_manager = PlateModelManager(os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
-            self.raster_manager = PresentDayRasterManager(os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
+            self.raster_manager = PresentDayRasterManager(raster_manifest=os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
             QtWidgets.QMessageBox.information(None, "Terra Antiqua - Server Unavailable",
                                               "The Plate Model Manager server is currently unavailable, some features wont work. "
                                               "Check your internet connection.")
