@@ -51,7 +51,8 @@ from qgis.core import (
     QgsCoordinateTransformContext,
     QgsCoordinateReferenceSystem,
     QgsSimpleFillSymbolLayer,
-    QgsProcessingException
+    QgsProcessingException,
+    QgsUnitTypes
 )
 
 import pip
@@ -728,6 +729,7 @@ def vectorToRaster(in_layer, geotransform, width, height, feedback=None, field_t
 
     points_raster_ds = gdal.Open(points_raster)
     points_array = points_raster_ds.GetRasterBand(1).ReadAsArray()
+    points_raster_ds = None
 
     drv = gdal.GetDriverByName('GTIFF')
     drv.Delete(output)
@@ -1150,8 +1152,8 @@ def randomPointsInPolygon(source, point_density, min_distance, feedback, runtime
 
         bbox = fGeom.boundingBox()
         area = da.measureArea(fGeom)
-        if da.areaUnits() != 8:
-            area = da.convertAreaMeasurement(area, 8)
+        if da.areaUnits() != QgsUnitTypes.AreaSquareDegrees:
+            area = da.convertAreaMeasurement(area, QgsUnitTypes.AreaSquareDegrees)
 
         pointCount = int(round(point_density * area))
 
