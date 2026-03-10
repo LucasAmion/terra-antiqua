@@ -24,7 +24,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         file properly.
         """
         processing_alg_names = [("Topography", "TaReconstructTopography"),
-                                ("Agegrid", "TaReconstructAgegrid")]
+                                ("Agegrid/Bathymetry", "TaReconstructAgegrid")]
         for alg, name in processing_alg_names:
             if self.rasterType.currentText() == alg:
                 self.setDialogName(name)
@@ -38,14 +38,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.rasterType = self.addMandatoryParameter(QComboBox,
                                                      "Type of raster to reconstruct:")
         self.rasterType.addItem('Topography')
-        self.rasterType.addItem('Agegrid')
-        
-        try:
-            from agegrid.run_paleo_age_grids import run_paleo_age_grids
-        except Exception:
-            index = self.rasterType.findText('Agegrid')
-            self.rasterType.model().item(index).setEnabled(False)
-            self.rasterType.setItemData(index, "GMT not available. Agegrid reconstruction is disabled.", QtCore.Qt.ToolTipRole)
+        self.rasterType.addItem('Agegrid/Bathymetry')
         
         self.rasterType.currentTextChanged.connect(self.reloadHelp)
         
@@ -59,7 +52,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 model_list = cache_manager.get_available_models(
                     required_layers=["Topologies", "StaticPolygons"])
                 
-            elif raster_type == "Agegrid":
+            elif raster_type == "Agegrid/Bathymetry":
                 self.modelName.clear()
                 model_list = cache_manager.get_available_models(
                     required_layers=["Topologies", "StaticPolygons", "COBs"])
@@ -162,7 +155,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         
         # Bathymetry specific parameters:
         ## Starting time:
-        self.startTime = self.addVariantParameter(TaSpinBox, "Agegrid",
+        self.startTime = self.addVariantParameter(TaSpinBox, "Agegrid/Bathymetry",
                                                   "Start Time (in Ma)")
         self.startTime.setDataType("integer")        
         def set_maximum_start_time():
@@ -172,7 +165,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.modelName.currentIndexChanged.connect(set_maximum_start_time)
         
         ## End time
-        self.endTime = self.addVariantParameter(TaSpinBox, "Agegrid",
+        self.endTime = self.addVariantParameter(TaSpinBox, "Agegrid/Bathymetry",
                                                 "End Time (in Ma)")
         self.endTime.setDataType("integer")
         self.endTime.spinBox.setMinimum(0)
@@ -188,25 +181,25 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.endTime.spinBox.valueChanged.connect(set_minimum_start_time)
         
         ## Time Step
-        self.timeStep = self.addVariantParameter(TaSpinBox, "Agegrid",
+        self.timeStep = self.addVariantParameter(TaSpinBox, "Agegrid/Bathymetry",
                                                  "Time step (in Ma)")
         self.timeStep.setDataType("integer")
         self.timeStep.spinBox.setMinimum(1)
         
         ## Save all
-        self.saveAll = self.addVariantParameter(TaCheckBox, "Agegrid",
+        self.saveAll = self.addVariantParameter(TaCheckBox, "Agegrid/Bathymetry",
                                                 "Save all time steps:")
         self.saveAll.setChecked(False)
                
         ## Spatial Resolution
         self.resolution = self.addVariantParameter(QgsDoubleSpinBox,
-                                                   "Agegrid",
+                                                   "Agegrid/Bathymetry",
                                                    "Spacial resolution (in arc degrees):")
         self.resolution.setValue(0.5)
         
         ## Convert to Bathymetry
         self.convertToBathymetry = self.addVariantParameter(TaCheckBox,
-                                                            "Agegrid",
+                                                            "Agegrid/Bathymetry",
                                                             "Automatically convert to bathymetry:")
         self.convertToBathymetry.setChecked(True)
         
@@ -250,7 +243,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
         ## Spreading rate
         self.spreading_rate = self.addAdvancedParameter(
             QgsDoubleSpinBox, "Initial ocean spreading rate (mm/yr):",
-            variant_index="Agegrid")
+            variant_index="Agegrid/Bathymetry")
         self.spreading_rate.setMinimum(0)
         self.spreading_rate.setMaximum(1000)
         self.spreading_rate.setValue(75.)
@@ -267,13 +260,12 @@ class TaReconstructRastersDlg(TaBaseDialog):
             else:
                 self.localLayer.hide()
         self.inputRaster.currentTextChanged.connect(input_raster_changed)
-        self.rasterType.currentTextChanged.connect(input_raster_changed)
         input_raster_changed()
         
         # Hide topoStartTime and topoTimeStep if not creating a sequence
-        def on_create_sequence_state_changed(state):
+        def on_create_sequence_state_changed():
             set_minimum_reconstruction_time()
-            if state == QtCore.Qt.Checked:
+            if self.createSequence.isChecked():
                 self.topoStartTime.show()
                 self.reconstruction_time.label.setText("End time (in Ma):")
                 self.topoTimeStep.show()
@@ -282,7 +274,14 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 self.reconstruction_time.label.setText("Reconstruction time (in Ma):")
                 self.topoTimeStep.hide()
         self.createSequence.stateChanged.connect(on_create_sequence_state_changed)
-        on_create_sequence_state_changed(True)
+        on_create_sequence_state_changed()
+
+        # Update widgets when raster type changes
+        def on_raster_type_changed():
+            if self.rasterType.currentText() == "Topography":
+                input_raster_changed()
+                on_create_sequence_state_changed()
+        self.rasterType.currentTextChanged.connect(on_raster_type_changed)
         
         # Update output path when parameters change
         def update_output_path(_):
@@ -290,11 +289,13 @@ class TaReconstructRastersDlg(TaBaseDialog):
             if raster_type == "Topography":
                 reconstruction_time = self.reconstruction_time.spinBox.value()
                 start_time = self.topoStartTime.spinBox.value()
-            elif raster_type == "Agegrid":
+            elif raster_type == "Agegrid/Bathymetry":
                 reconstruction_time = self.endTime.spinBox.value()
                 start_time = self.startTime.spinBox.value()
                 if self.convertToBathymetry.isChecked():
                     raster_type = "Bathymetry"
+                else:
+                    raster_type = "Agegrid"
             model_name = self.modelName.currentData(QtCore.Qt.UserRole)
             if self.saveAll.isChecked() or self.createSequence.isChecked():
                 self.outputPathLabel.setText('Output folder:')
