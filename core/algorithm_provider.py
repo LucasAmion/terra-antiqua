@@ -3,6 +3,7 @@
 # Full copyright notice in file: terra_antiqua.py
 
 import os
+from PyQt5 import QtCore
 try:
     from qgis.core import QgsMapLayerType
 except:
@@ -36,12 +37,21 @@ class TaAlgorithmProvider:
         self.thread.progress.connect(self.dlg.setProgressValue)
         self.welcome_page = TaWelcomeDialog()
 
+    def _show_dialog_foreground(self):
+        # On Windows, after closing a modal dialog, focus can jump back to QGIS.
+        # Re-activate explicitly and retry once in the next event loop tick.
+        self.dlg.show()
+        self.dlg.setWindowState(self.dlg.windowState() & ~QtCore.Qt.WindowMinimized)
+        self.dlg.raise_()
+        self.dlg.activateWindow()
+        QtCore.QTimer.singleShot(0, self.dlg.activateWindow)
+
     def load(self):
         if self.settings.temporarySettings.get("first_start") != False:
             self.settings.setTempValue("first_start", False)
             if self.welcome_page.showAgain:
                 result = self.welcome_page.exec_()
-        self.dlg.show()
+        self._show_dialog_foreground()
 
     def start(self):
         if not self.thread.isRunning():
@@ -150,6 +160,10 @@ class TaRemoveArtefactsAlgProvider:
         self.storeRubberbands(self.toolPoly.rubberband,
                               self.toolPoly.vertices, self.toolPoly.points)
         self.dlg.show()
+        self.dlg.setWindowState(self.dlg.windowState() & ~QtCore.Qt.WindowMinimized)
+        self.dlg.raise_()
+        self.dlg.activateWindow()
+        QtCore.QTimer.singleShot(0, self.dlg.activateWindow)
         if self.nFeatures == 0:
             context = QgsExpressionContext()
             context.appendScope(

@@ -33,7 +33,9 @@ from PyQt5.QtCore import (
                             QSettings,
                             QTranslator,
                             qVersion,
-                            QCoreApplication
+                            QCoreApplication,
+                            Qt,
+                            QTimer
                         )
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QToolBar
@@ -378,6 +380,12 @@ class TerraAntiqua:
                 result = self.welcome_page.exec_()
         self.manageInputFilesDlg = TaManageInputFilesDlg()
         self.manageInputFilesDlg.show()
+        self.manageInputFilesDlg.setWindowState(
+            self.manageInputFilesDlg.windowState() & ~Qt.WindowMinimized
+        )
+        self.manageInputFilesDlg.raise_()
+        self.manageInputFilesDlg.activateWindow()
+        QTimer.singleShot(0, self.manageInputFilesDlg.activateWindow)
     
     def initRemoveArtefacts(self):
         """Initializes the Remove artefacts algorithm and activates it"""
