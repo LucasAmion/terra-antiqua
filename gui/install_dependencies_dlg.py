@@ -34,11 +34,10 @@ class TaInstallDependenciesDialog(QtWidgets.QDialog):
         self.message_label = QtWidgets.QLabel(
             "Terra Antiqua requires additional Python packages to run.\n\n"
             "The following packages and their dependencies will be installed in QGIS built-in python environment:\n"
-            "appdirs\n"
-            "gplately\n"
-            "plate-model-manager\n"
-            "gplately\n"
-            "paleo-age-grids\n\n"
+            "- appdirs\n"
+            "- gplately\n"
+            "- plate-model-manager\n"
+            "- paleo-age-grids\n\n"
             "Warning: There might be version conflicts with packages installed by other plugins, proceed at your own risk.\n"
         )
         self.message_label.setWordWrap(True)
@@ -49,8 +48,8 @@ class TaInstallDependenciesDialog(QtWidgets.QDialog):
 
         # Progress bar (hidden initially)
         self.progress_bar = QtWidgets.QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
+        self.progress_bar.setRange(0, 0)
+        self.progress_bar.setTextVisible(False)
         self.progress_bar.setVisible(False)
         layout.addWidget(self.progress_bar)
 
@@ -77,6 +76,7 @@ class TaInstallDependenciesDialog(QtWidgets.QDialog):
     def _start_install(self):
         self.install_button.setEnabled(False)
         self.cancel_button.setEnabled(False)
+        self.progress_bar.setRange(0, 0)
         self.progress_bar.setVisible(True)
         self.status_label.setVisible(True)
         self.status_label.setText("Preparing installation...")
@@ -89,7 +89,7 @@ class TaInstallDependenciesDialog(QtWidgets.QDialog):
         self._install_thread.start()
 
     def _on_progress(self, value):
-        self.progress_bar.setValue(value)
+        _ = value
 
     def _on_status(self, text):
         self.status_label.setText(text)
@@ -97,7 +97,7 @@ class TaInstallDependenciesDialog(QtWidgets.QDialog):
     def _on_success(self):
         self._success = True
         self.status_label.setText("All dependencies installed successfully!")
-        self.progress_bar.setValue(100)
+        self.progress_bar.setVisible(False)
         self.install_button.setVisible(False)
         self.cancel_button.setText("Continue")
         self.cancel_button.setEnabled(True)
