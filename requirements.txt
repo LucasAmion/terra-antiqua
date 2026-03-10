@@ -1,3 +1,4 @@
+affine
 aiohappyeyeballs
 aiohttp
 aiosignal
@@ -5,8 +6,10 @@ appdirs
 astropy
 astropy_healpix
 astropy-iers-data
+attrs
 Cartopy
 cftime
+click
 cligj
 contourpy
 cycler
@@ -32,6 +35,7 @@ pygmt
 pygplates
 pyparsing
 pyshp
+rasterio
 rioxarray
 scikit-image
 scipy
