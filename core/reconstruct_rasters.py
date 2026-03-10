@@ -50,7 +50,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             resampling = self.dlg.resampling.isChecked()
             resampling_resolution = self.dlg.resampling_resolution.value()
             interpolationMethod = self.dlg.interpolationMethod.currentIndex()
-        if raster_type == "Agegrid":
+        if raster_type == "Agegrid/Bathymetry":
             start_time = self.dlg.startTime.spinBox.value()
             end_time = self.dlg.endTime.spinBox.value()
             time_step = self.dlg.timeStep.spinBox.value()
@@ -193,7 +193,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     self.feedback.error("There was an error while exporting the result to NetCDF.")
                     self.kill()
                     
-        elif raster_type == 'Agegrid':
+        elif raster_type == 'Agegrid/Bathymetry':
             # Downloading rotation model files
             if not self.killed:
                 try:
