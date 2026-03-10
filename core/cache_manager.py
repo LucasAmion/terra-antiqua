@@ -15,7 +15,7 @@ class TaCacheManager:
     
     layers_allowed_extensions = ["*.gpml", "*.gpmlz", "*.gpml.gz", "*.dat", "*.pla", "*.shp", "*.geojson", "*.json", "*.gpkg", "*.gmt", "*.vgp"]
     
-    possible_layers = ["Topologies", "Coastlines", "COBs", "StaticPolygons", "ContinentalPolygons"]
+    possible_layers = ["Topologies", "Coastlines", "COBs", "Static Polygons", "Continental Polygons"]
     
     available_rasters = {
         "ETOPO 2022 Bedrock (60 arc seconds)": "etopo_bed_60",
@@ -117,6 +117,7 @@ class TaCacheManager:
         """Check if a specific layer is available in the given model."""
         model = self.get_model(model_name)
         available_layers = model.get_avail_layers()
+        layer = layer.replace(" ", "")
         return layer in available_layers
     
     def get_model(self, display_model_name):
@@ -170,6 +171,7 @@ class TaCacheManager:
         
         for layer in layers:
             if layer in self.possible_layers:
+                layer = layer.replace(" ", "")
                 model.get_layer(layer, return_none_if_not_exist=True)
                 if self.is_model_custom(model_name) and feedback:
                     feedback.debug(f"Layer '{layer}' for model '{model_name}' available locally, no need to download.")
@@ -179,6 +181,7 @@ class TaCacheManager:
     
     def get_layer(self, model_name, layer_name, feedback=None):
         model = self.get_model(model_name)
+        layer_name = layer_name.replace(" ", "")
         return model.get_layer(layer_name, return_none_if_not_exist=True)
     
     def get_available_rasters(self):

@@ -42,11 +42,11 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
             try:
                 if layer_type == "Local Layer":
                     self.feedback.info("Reading local input layer...")
-                    layer = local_layer.dataProvider().dataSourceUri()
+                    layer = local_layer.source().split("|")[0]
                 else:
                     self.feedback.info(f"Downloading {model_name} associated vector layers if needed...")
                     cache_manager.download_all_layers(model_name, self.feedback)
-                    layer = cache_manager.get_layer(model_name, layer_type.replace(' ', ''), self.feedback)
+                    layer = cache_manager.get_layer(model_name, layer_type, self.feedback)
                 
             except Exception:
                 self.feedback.error("There was an error while obtaining the input layer.")

@@ -26,19 +26,20 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
                                                     "Layer to reconstruct:")
         self.layerType.addItems(cache_manager.possible_layers)
         self.layerType.removeItem(0) # Topologies are not supported for reconstruction
-        self.layerType.addItem("LocalLayer")
+        self.layerType.addItem("Local Layer")
                 
         self.localLayer = self.addMandatoryParameter(TaVectorLayerComboBox,
-                                                     "Select a local raster layer:")
+                                                     "Select a local vector layer:")
+        self.localLayer.cmb.setLayerType('All')
         
         # Rotation Model:
         self.modelName = self.addMandatoryParameter(QComboBox,
                                                     "Name of rotation model:")
         self.modelName.setStyleSheet("combobox-popup: 0;")
         def set_available_models():
-            layer_type = self.layerType.currentText().replace(' ', '')
+            layer_type = self.layerType.currentText()
             self.modelName.clear()
-            if layer_type == "LocalLayer":
+            if layer_type == "Local Layer":
                 model_list = cache_manager.get_available_models()
             else:
                 model_list = cache_manager.get_available_models(required_layers=[layer_type])
@@ -59,6 +60,7 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         # Reconstruction time:
         self.reconstruction_time = self.addMandatoryParameter(TaSpinBox, "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
+        self.reconstruction_time.spinBox.setMinimum(0)
         def set_maximum_reconstruction_time():
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)
@@ -79,14 +81,14 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         
         # Update output path when parameters change
         def update_output_path(_):
-            layer_type = self.layerType.currentText().replace(' ', '')
+            layer_type = self.layerType.currentText()
             reconstruction_time = self.reconstruction_time.spinBox.value()
             model_name = self.modelName.currentData(QtCore.Qt.UserRole)
             
-            if layer_type == "LocalLayer" and self.localLayer.currentLayer():
+            if layer_type == "Local Layer" and self.localLayer.currentLayer():
                 layer_type = self.localLayer.currentLayer().name()
             path = os.path.join(tempfile.gettempdir(),
-                                f"{layer_type}_{reconstruction_time}.0_{model_name}.shp")
+                                f"{layer_type.replace(' ', '')}_{reconstruction_time}.0_{model_name}.shp")
             self.outputPath.lineEdit().setPlaceholderText(path)
             self.outputPath.setFilter('*.shp')
         
