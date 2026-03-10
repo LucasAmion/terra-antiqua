@@ -2,6 +2,9 @@
 # Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
 # Full copyright notice in file: terra_antiqua.py
 
+import sys
+import importlib
+import site
 from pathlib import Path
 
 from PyQt5.QtCore import QThread, pyqtSignal
@@ -28,6 +31,19 @@ class DependencyInstallThread(QThread):
         super().__init__(parent)
         self._requirements_path = Path(__file__).parent.parent / "requirements.txt"
 
+    @staticmethod
+    def _refresh_import_paths():
+        """Make newly installed packages importable without restarting QGIS.
+         This is necessary because pip may install packages in user site-packages which is not always in sys.path."""
+        user_site = site.getusersitepackages()
+        site_paths = user_site if isinstance(user_site, list) else [user_site]
+
+        for path in site_paths:
+            if path and path not in sys.path:
+                site.addsitedir(path)
+
+        importlib.invalidate_caches()
+
     def run(self):
         try:
             self.status.emit("Installing dependencies...")
@@ -49,6 +65,8 @@ class DependencyInstallThread(QThread):
                     "Please check the QGIS Python console for details."
                 )
                 return
+
+            self._refresh_import_paths()
 
             self.progress.emit(100)
             self.status.emit("Dependencies installed successfully.")
