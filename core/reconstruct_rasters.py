@@ -3,23 +3,26 @@
 #Full copyright notice in file: terra_antiqua.py
 
 from osgeo import gdal
-from PyQt5 import QtCore, QtWidgets, QtGui
-
+from PyQt5 import QtCore, QtGui
 from qgis.core import QgsRasterLayer
+
 from .base_algorithm import TaBaseAlgorithm
 from .utils import clipArrayToExtent, convertAgeToDepth
 from .cache_manager import cache_manager
 
-try:
-    from agegrid.run_paleo_age_grids import run_paleo_age_grids
-except Exception:
-    QtWidgets.QMessageBox.warning(None, "Terra Antiqua - GMT not found",
-                                        "Make sure you have GMT installed in your system and add it to path, otherwise the Bathymetry/Agegrid reconstruction feature won't be available. "
-                                        'You can follow the instructions on this page if you do not know how to do it: <a href="https://github.com/LucasAmion/terra-antiqua?tab=readme-ov-file#windows">https://github.com/LucasAmion/terra-antiqua?tab=readme-ov-file#windows</a>')
+from agegrid.run_paleo_age_grids import run_paleo_age_grids
 
-import gplately
 import os
 import shutil
+
+try:
+    import gplately
+except Exception:
+    # This fixes error on MacOS were gplately tries to create a log file in a protected directory
+    import tempfile
+    original_dir = os.getcwd()
+    os.chdir(tempfile.gettempdir())
+    import gplately
 
 class TaReconstructRasters(TaBaseAlgorithm):
 
@@ -99,7 +102,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                         self.kill()
                 try:
                     self.feedback.info("Reading input raster...")
-                    data = gdal.Open(local_layer.dataProvider().dataSourceUri())
+                    data = gdal.Open(local_layer.source())
                     data = data.GetRasterBand(1).ReadAsArray()
                     input_extent = local_layer.extent()
                     input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
