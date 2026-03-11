@@ -260,7 +260,6 @@ class TaReconstructRastersDlg(TaBaseDialog):
             else:
                 self.localLayer.hide()
         self.inputRaster.currentTextChanged.connect(input_raster_changed)
-        input_raster_changed()
         
         # Hide topoStartTime and topoTimeStep if not creating a sequence
         def on_create_sequence_state_changed():
@@ -274,7 +273,6 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 self.reconstruction_time.label.setText("Reconstruction time (in Ma):")
                 self.topoTimeStep.hide()
         self.createSequence.stateChanged.connect(on_create_sequence_state_changed)
-        on_create_sequence_state_changed()
 
         # Update widgets when raster type changes
         def on_raster_type_changed():
@@ -282,6 +280,7 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 input_raster_changed()
                 on_create_sequence_state_changed()
         self.rasterType.currentTextChanged.connect(on_raster_type_changed)
+        on_raster_type_changed()
         
         # Update output path when parameters change
         def update_output_path(_):
