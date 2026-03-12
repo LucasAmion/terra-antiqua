@@ -296,7 +296,8 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 else:
                     raster_type = "Agegrid"
             model_name = self.modelName.currentData(QtCore.Qt.UserRole)
-            if self.saveAll.isChecked() or self.createSequence.isChecked():
+            if (raster_type == "Topography" and self.createSequence.isChecked()) or \
+               (raster_type in ("Agegrid", "Bathymetry") and self.saveAll.isChecked()):
                 self.outputPathLabel.setText('Output folder:')
                 self.outputPath.setStorageMode(QgsFileWidget.StorageMode.GetDirectory)
                 path = os.path.join(tempfile.gettempdir(),
