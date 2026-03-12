@@ -169,9 +169,9 @@ class TaCacheManager:
         
         if feedback: feedback.progress += 10
         
-        for layer in layers:
-            if layer in self.possible_layers:
-                layer = layer.replace(" ", "")
+        for layer in self.possible_layers:
+            layer = layer.replace(" ", "")
+            if layer in layers:
                 model.get_layer(layer, return_none_if_not_exist=True)
                 if self.is_model_custom(model_name) and feedback:
                     feedback.debug(f"Layer '{layer}' for model '{model_name}' available locally, no need to download.")
