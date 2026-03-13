@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import fnmatch
+import glob
 
 class TaCacheManager:
     """Cache manager for Terra Antiqua plugin, handling plate models and present-day rasters."""
@@ -185,12 +186,20 @@ class TaCacheManager:
         return model.get_layer(layer_name, return_none_if_not_exist=True)
     
     def get_available_rasters(self):
-        """Return a list of available rasters."""
+        """Return a list of available rasters. When offline, only return locally available ones."""
+        if not self.raster_manager.rasters:
+            return [name for name in self.available_rasters
+                    if self.is_raster_available_locally(name)]
         return self.available_rasters.keys()
     
     def is_raster_available_locally(self, raster_name):
         """Check if a raster is already downloaded."""
         raster_name = self.available_rasters[raster_name]
+        if raster_name not in self.raster_manager.rasters:
+            raster_dir = os.path.join(self.raster_data_dir, raster_name)
+            return os.path.isdir(raster_dir) and any(
+                f for f in os.listdir(raster_dir) if not f.startswith('.')
+            )
         downloader = FileDownloader(
             self.raster_manager.rasters[raster_name],
             f"{self.raster_data_dir}/{raster_name}/.metadata.json",
@@ -202,6 +211,15 @@ class TaCacheManager:
     def download_raster(self, raster, feedback=None):
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         raster = self.available_rasters[raster]
+        if raster not in self.raster_manager.rasters:
+            files = glob.glob(f"{self.raster_data_dir}/{raster}/*")
+            files = [f for f in files if not os.path.basename(f).startswith('.')]
+            if files:
+                if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
+                return files[0]
+            raise FileNotFoundError(
+                f"Raster '{raster}' is not available on the server and no local copy was found."
+            )
         output_filename = self.raster_manager.get_raster(raster)
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
         
