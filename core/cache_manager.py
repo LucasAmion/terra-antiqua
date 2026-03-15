@@ -68,6 +68,11 @@ class TaCacheManager:
         self.raster_manager = None
         self.model_list = []
         self.display_model_list = []
+        
+        # Caches to avoid repeated filesystem scans and network I/O
+        self._local_model_names_cache = None
+        self._raster_available_cache = {}
+        self._icon_tooltip_cache = {}
     
     @property
     def is_initialized(self):
@@ -124,6 +129,18 @@ class TaCacheManager:
         else:
             self._init_event.wait()
         
+    def _get_local_model_names(self):
+        """Cached wrapper for pm_manager.get_local_available_model_names."""
+        if self._local_model_names_cache is None:
+            self._local_model_names_cache = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        return list(self._local_model_names_cache)
+    
+    def invalidate_cache(self):
+        """Clear all cached lookups so the next access re-queries the filesystem / network."""
+        self._local_model_names_cache = None
+        self._raster_available_cache.clear()
+        self._icon_tooltip_cache.clear()
+    
     def get_display_name(self, model_name):
         """Convert model name to a more readable format."""
         # Replace underscores with spaces
@@ -137,26 +154,30 @@ class TaCacheManager:
         return model_name
     
     def get_icon_and_tooltip(self, model_or_raster_name):
-        """Get the icon and tooltip for a model or raster."""
+        """Get the icon and tooltip for a model or raster (cached)."""
         self._ensure_initialized()
+        if model_or_raster_name in self._icon_tooltip_cache:
+            return self._icon_tooltip_cache[model_or_raster_name]
+        result = ("", "")
         if model_or_raster_name is not None:
             if model_or_raster_name in self.get_available_rasters():
                 raster_name = model_or_raster_name
                 if self.is_raster_available_locally(raster_name):
-                    return "✅", "Raster already downloaded"
+                    result = ("✅", "Raster already downloaded")
             else:
                 model_name = model_or_raster_name
                 if self.model_list != []:
                     if cache_manager.is_model_custom(model_name):
-                        return "🛠️", "Custom model"
+                        result = ("🛠️", "Custom model")
                     elif cache_manager.is_model_available_locally(model_name):
-                        return "✅", "Already downloaded"
-        return "", ""
+                        result = ("✅", "Already downloaded")
+        self._icon_tooltip_cache[model_or_raster_name] = result
+        return result
     
     def get_custom_model_names(self):
         """Return the names of locally available models as a list."""
         self._ensure_initialized()
-        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        local_models = self._get_local_model_names()
         for model in self.model_list:
             if model in local_models:
                 local_models.remove(model)
@@ -177,7 +198,7 @@ class TaCacheManager:
     def is_model_available_locally(self, display_model_name):
         """Check if a model is available locally."""
         self._ensure_initialized()
-        local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
+        local_models = self._get_local_model_names()
         index = self.display_model_list.index(display_model_name)
         model_name = self.model_list[index]
         return model_name in local_models
@@ -206,6 +227,7 @@ class TaCacheManager:
             index = self.display_model_list.index(display_model_name)
             model_name = self.model_list[index]
             model = self.pm_manager.get_model(model_name, self.model_data_dir)
+        self.invalidate_cache()
         return model
     
     def get_model_bigtime(self, model_name):
@@ -235,6 +257,7 @@ class TaCacheManager:
         if feedback: feedback.progress += 10
         
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
+        self.invalidate_cache()
         return rotation_model
 
     def download_all_layers(self, model_name, feedback=None):
@@ -254,11 +277,14 @@ class TaCacheManager:
                 if feedback: feedback.progress += 5
         
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
+        self.invalidate_cache()
     
     def get_layer(self, model_name, layer_name, feedback=None):
         model = self.get_model(model_name)
         layer_name = layer_name.replace(" ", "")
-        return model.get_layer(layer_name, return_none_if_not_exist=True)
+        result = model.get_layer(layer_name, return_none_if_not_exist=True)
+        self.invalidate_cache()
+        return result
     
     def get_available_rasters(self):
         """Return a list of available rasters. When offline, only return locally available ones."""
@@ -269,46 +295,52 @@ class TaCacheManager:
         return self.available_rasters.keys()
     
     def is_raster_available_locally(self, raster_name):
-        """Check if a raster is already downloaded."""
+        """Check if a raster is already downloaded (cached)."""
         self._ensure_initialized()
-        raster_name = self.available_rasters[raster_name]
-        if raster_name not in self.raster_manager.rasters:
-            raster_dir = os.path.join(self.raster_data_dir, raster_name)
-            return os.path.isdir(raster_dir) and any(
+        if raster_name in self._raster_available_cache:
+            return self._raster_available_cache[raster_name]
+        internal_name = self.available_rasters[raster_name]
+        if internal_name not in self.raster_manager.rasters:
+            raster_dir = os.path.join(self.raster_data_dir, internal_name)
+            result = os.path.isdir(raster_dir) and any(
                 f for f in os.listdir(raster_dir) if not f.startswith('.')
             )
-        downloader = FileDownloader(
-            self.raster_manager.rasters[raster_name],
-            f"{self.raster_data_dir}/{raster_name}/.metadata.json",
-            f"{self.raster_data_dir}/{raster_name}/",
-            large_file_hint=True,
-        )
-        return not downloader.check_if_file_need_update()
+        else:
+            downloader = FileDownloader(
+                self.raster_manager.rasters[internal_name],
+                f"{self.raster_data_dir}/{internal_name}/.metadata.json",
+                f"{self.raster_data_dir}/{internal_name}/",
+                large_file_hint=True,
+            )
+            result = not downloader.check_if_file_need_update()
+        self._raster_available_cache[raster_name] = result
+        return result
     
     def download_raster(self, raster, feedback=None):
         self._ensure_initialized()
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
-        raster = self.available_rasters[raster]
-        if raster not in self.raster_manager.rasters:
-            files = glob.glob(f"{self.raster_data_dir}/{raster}/*")
+        internal_name = self.available_rasters[raster]
+        if internal_name not in self.raster_manager.rasters:
+            files = glob.glob(f"{self.raster_data_dir}/{internal_name}/*")
             files = [f for f in files if not os.path.basename(f).startswith('.')]
             if files:
                 if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
                 return files[0]
             raise FileNotFoundError(
-                f"Raster '{raster}' is not available on the server and no local copy was found."
+                f"Raster '{internal_name}' is not available on the server and no local copy was found."
             )
-        output_filename = self.raster_manager.get_raster(raster)
+        output_filename = self.raster_manager.get_raster(internal_name)
         if feedback: self.pmm_logger.removeHandler(feedback.log_handler)
-        
+        self.invalidate_cache()
         return output_filename
     
     def delete_raster(self, raster_name):
         """Delete a raster from the local storage."""
-        raster_name = self.available_rasters[raster_name]
-        raster_path = os.path.join(self.raster_data_dir, raster_name)
+        internal_name = self.available_rasters[raster_name]
+        raster_path = os.path.join(self.raster_data_dir, internal_name)
         if os.path.exists(raster_path):
             shutil.rmtree(raster_path)
+        self.invalidate_cache()
     
     def get_raster_path(self, raster_name):
         """Get the local path of a raster."""
@@ -342,6 +374,7 @@ class TaCacheManager:
         self._ensure_initialized()
         model = self.get_model(model_name)
         model.purge()
+        self.invalidate_cache()
         
 cache_manager = TaCacheManager()
     
