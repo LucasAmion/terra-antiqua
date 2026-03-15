@@ -37,6 +37,8 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
                                                     "Name of rotation model:")
         self.modelName.setStyleSheet("combobox-popup: 0;")
         def set_available_models():
+            if not cache_manager.is_initialized:
+                return
             layer_type = self.layerType.currentText()
             self.modelName.clear()
             if layer_type == "Local Layer":
@@ -54,17 +56,29 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
                 self.modelName.setItemData(index, display_text, QtCore.Qt.DisplayRole)
                 self.modelName.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
                 self.modelName.setItemData(index, model, QtCore.Qt.UserRole)
+        self._set_available_models = set_available_models
         self.layerType.currentTextChanged.connect(set_available_models)
-        set_available_models()
+        if cache_manager.is_initialized:
+            set_available_models()
+        else:
+            self.modelName.addItem("Loading models...")
+            self.modelName.setEnabled(False)
+            def _deferred_populate():
+                self.modelName.setEnabled(True)
+                self._set_available_models()
+            cache_manager.signals.initialized.connect(_deferred_populate)
         
         # Reconstruction time:
         self.reconstruction_time = self.addMandatoryParameter(TaSpinBox, "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
         self.reconstruction_time.spinBox.setMinimum(0)
         def set_maximum_reconstruction_time():
+            if not cache_manager.is_initialized:
+                return
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)
-        set_maximum_reconstruction_time()
+        if cache_manager.is_initialized:
+            set_maximum_reconstruction_time()
         self.modelName.currentIndexChanged.connect(set_maximum_reconstruction_time)
         
         # Fill the parameters' tab of the Dialog with the defined parameters

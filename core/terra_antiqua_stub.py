@@ -191,6 +191,8 @@ class TerraAntiquaStub:
     def _load_real_plugin(self):
         """Import and initialise the real TerraAntiqua, reusing our toolbar."""
         from .terra_antiqua import TerraAntiqua
+        from .cache_manager import cache_manager
+        cache_manager.start_background_init()
 
         self._real_plugin = TerraAntiqua(self.iface)
         # The real plugin must not create duplicate toolbar entries — we pass

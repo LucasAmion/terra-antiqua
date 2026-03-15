@@ -47,6 +47,8 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                     "Name of rotation model:")
         self.modelName.setStyleSheet("combobox-popup: 0;")
         def set_available_models(raster_type):
+            if not cache_manager.is_initialized:
+                return
             if raster_type == "Topography":
                 self.modelName.clear()
                 model_list = cache_manager.get_available_models(
@@ -68,25 +70,47 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 self.modelName.setItemData(index, display_text, QtCore.Qt.DisplayRole)
                 self.modelName.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
                 self.modelName.setItemData(index, model, QtCore.Qt.UserRole)
+        self._set_available_models = set_available_models
         self.rasterType.currentTextChanged.connect(set_available_models)
-        set_available_models("Topography")
         
         # Topography specific parameters:
         ## Input raster:
         self.inputRaster = self.addVariantParameter(QComboBox, "Topography",
                                                     "Input raster:")
-        raster_list = cache_manager.get_available_rasters()
-        for raster in raster_list:
-            self.inputRaster.addItem(raster)
-            symbol, tooltip = cache_manager.get_icon_and_tooltip(raster)
-            display_text = f"{raster} {symbol}"
+        
+        def populate_rasters():
+            self.inputRaster.clear()
+            raster_list = cache_manager.get_available_rasters()
+            for raster in raster_list:
+                self.inputRaster.addItem(raster)
+                symbol, tooltip = cache_manager.get_icon_and_tooltip(raster)
+                display_text = f"{raster} {symbol}"
+                index = self.inputRaster.count() - 1
+                self.inputRaster.setItemData(index, display_text, QtCore.Qt.DisplayRole)
+                self.inputRaster.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
+                self.inputRaster.setItemData(index, raster, QtCore.Qt.UserRole)
+            self.inputRaster.addItem('Local')
             index = self.inputRaster.count() - 1
-            self.inputRaster.setItemData(index, display_text, QtCore.Qt.DisplayRole)
-            self.inputRaster.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
-            self.inputRaster.setItemData(index, raster, QtCore.Qt.UserRole)
-        self.inputRaster.addItem('Local')
-        index = self.inputRaster.count() - 1
-        self.inputRaster.setItemData(index, 'Local', QtCore.Qt.UserRole)
+            self.inputRaster.setItemData(index, 'Local', QtCore.Qt.UserRole)
+        self._populate_rasters = populate_rasters
+        
+        def _on_cache_initialized():
+            self._set_available_models(self.rasterType.currentText())
+            self._populate_rasters()
+        
+        if cache_manager.is_initialized:
+            set_available_models("Topography")
+            populate_rasters()
+        else:
+            self.modelName.addItem("Loading models...")
+            self.modelName.setEnabled(False)
+            self.inputRaster.addItem("Loading rasters...")
+            self.inputRaster.setEnabled(False)
+            def _deferred_populate():
+                self.modelName.setEnabled(True)
+                self.inputRaster.setEnabled(True)
+                _on_cache_initialized()
+            cache_manager.signals.initialized.connect(_deferred_populate)
         
         self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
                                                    "Select a local raster layer:")
@@ -101,9 +125,12 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                   "Start time (in Ma):")
         self.topoStartTime.setDataType("integer")
         def set_minimum_start_time():
+            if not cache_manager.is_initialized:
+                return
             model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.topoStartTime.spinBox.setMinimum(model_smalltime)
-        set_minimum_start_time()
+        if cache_manager.is_initialized:
+            set_minimum_start_time()
         self.modelName.currentIndexChanged.connect(set_minimum_start_time)
         
         ## Reconstruction time:
@@ -111,18 +138,24 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                             "Reconstruction time (in Ma):")
         self.reconstruction_time.setDataType("integer")
         def set_minimum_reconstruction_time():
+            if not cache_manager.is_initialized:
+                return
             if self.createSequence.isChecked():
                 self.reconstruction_time.spinBox.setMinimum(self.topoStartTime.spinBox.value() + 1)
             else:
                 model_smalltime = cache_manager.get_model_smalltime(self.modelName.currentData(QtCore.Qt.UserRole))
                 self.reconstruction_time.spinBox.setMinimum(model_smalltime)
-        set_minimum_reconstruction_time()
+        if cache_manager.is_initialized:
+            set_minimum_reconstruction_time()
         self.topoStartTime.spinBox.valueChanged.connect(set_minimum_reconstruction_time)
         self.modelName.currentIndexChanged.connect(set_minimum_reconstruction_time)
         def set_maximum_reconstruction_time():
+            if not cache_manager.is_initialized:
+                return
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.reconstruction_time.spinBox.setMaximum(model_bigtime)
-        set_maximum_reconstruction_time()
+        if cache_manager.is_initialized:
+            set_maximum_reconstruction_time()
         self.modelName.currentIndexChanged.connect(set_maximum_reconstruction_time)
         
         ## Time step:
@@ -159,9 +192,12 @@ class TaReconstructRastersDlg(TaBaseDialog):
                                                   "Start Time (in Ma)")
         self.startTime.setDataType("integer")        
         def set_maximum_start_time():
+            if not cache_manager.is_initialized:
+                return
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.startTime.spinBox.setMaximum(model_bigtime)
-        set_maximum_start_time()
+        if cache_manager.is_initialized:
+            set_maximum_start_time()
         self.modelName.currentIndexChanged.connect(set_maximum_start_time)
         
         ## End time
@@ -170,9 +206,12 @@ class TaReconstructRastersDlg(TaBaseDialog):
         self.endTime.setDataType("integer")
         self.endTime.spinBox.setMinimum(0)
         def set_maximum_end_time():
+            if not cache_manager.is_initialized:
+                return
             model_bigtime = cache_manager.get_model_bigtime(self.modelName.currentData(QtCore.Qt.UserRole))
             self.endTime.spinBox.setMaximum(model_bigtime - 1)
-        set_maximum_end_time()
+        if cache_manager.is_initialized:
+            set_maximum_end_time()
         self.modelName.currentIndexChanged.connect(set_maximum_end_time)
         
         def set_minimum_start_time():

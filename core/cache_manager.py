@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QThread, QObject, pyqtSignal
 from appdirs import user_data_dir
 from plate_model_manager import PlateModelManager, PresentDayRasterManager, PlateModel
 from plate_model_manager.exceptions import ServerUnavailable
@@ -8,6 +9,24 @@ import os
 import shutil
 import fnmatch
 import glob
+import threading
+
+class _CacheSignals(QObject):
+    """Qt signals for TaCacheManager (must live on a QObject)."""
+    initialized = pyqtSignal()
+    server_unavailable = pyqtSignal()
+
+
+class _CacheInitThread(QThread):
+    """Background thread that runs the slow cache-manager initialization."""
+
+    def __init__(self, cache_mgr, parent=None):
+        super().__init__(parent)
+        self._cache_mgr = cache_mgr
+
+    def run(self):
+        self._cache_mgr._do_initialize()
+
 
 class TaCacheManager:
     """Cache manager for Terra Antiqua plugin, handling plate models and present-day rasters."""
@@ -34,26 +53,76 @@ class TaCacheManager:
         os.makedirs(self.model_data_dir, exist_ok=True)
         os.makedirs(self.raster_data_dir, exist_ok=True)
         
+        self.pmm_logger = logging.getLogger('pmm')
+        self.pmm_logger.setLevel(logging.DEBUG)
+        
+        # Async-init bookkeeping
+        self._initialized = False
+        self._init_event = threading.Event()
+        self._init_thread = None
+        self.signals = _CacheSignals()
+        self._server_unavailable = False
+        
+        # Defaults for attributes set during _do_initialize()
+        self.pm_manager = None
+        self.raster_manager = None
+        self.model_list = []
+        self.display_model_list = []
+    
+    @property
+    def is_initialized(self):
+        """Return True if the background initialization has completed."""
+        return self._initialized
+    
+    def start_background_init(self):
+        """Start the slow initialization in a background QThread."""
+        if self._initialized or self._init_thread is not None:
+            return
+        self._init_thread = _CacheInitThread(self)
+        self._init_thread.finished.connect(self._on_init_finished)
+        self._init_thread.start()
+    
+    def _on_init_finished(self):
+        """Slot called on the main thread when the background init completes."""
+        if self._server_unavailable:
+            QtWidgets.QMessageBox.information(None, "Terra Antiqua - Server Unavailable",
+                                              "The Plate Model Manager server is currently unavailable, some features wont work. "
+                                              "Check your internet connection.")
+        self.signals.initialized.emit()
+    
+    def _do_initialize(self):
+        """Perform the slow initialization (runs in a background thread)."""
         try:
             self.pm_manager = PlateModelManager()
             self.raster_manager = PresentDayRasterManager(raster_manifest=os.path.join(os.path.dirname(__file__), "../resources/present_day_rasters.json"))
         except ServerUnavailable:
             self.pm_manager = PlateModelManager(os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
             self.raster_manager = PresentDayRasterManager(raster_manifest=os.path.join(os.path.dirname(__file__), "../resources/empty_json.json"))
-            QtWidgets.QMessageBox.information(None, "Terra Antiqua - Server Unavailable",
-                                              "The Plate Model Manager server is currently unavailable, some features wont work. "
-                                              "Check your internet connection.")
+            self._server_unavailable = True
         
         self.raster_manager.set_data_dir(self.raster_data_dir)
-        
-        self.pmm_logger = logging.getLogger('pmm')
-        self.pmm_logger.setLevel(logging.DEBUG)
 
         self.model_list = self.pm_manager.get_available_model_names()
         if not self.model_list:
             self.model_list = ["default"]
         self.model_list.remove("default")
         self.display_model_list = [self.get_display_name(model) for model in self.model_list]
+        
+        self._initialized = True
+        self._init_event.set()
+    
+    def _ensure_initialized(self):
+        """Block the calling thread until initialization is complete.
+        
+        If start_background_init() was never called, runs _do_initialize()
+        synchronously (fallback for direct usage).
+        """
+        if self._initialized:
+            return
+        if self._init_thread is None:
+            self._do_initialize()
+        else:
+            self._init_event.wait()
         
     def get_display_name(self, model_name):
         """Convert model name to a more readable format."""
@@ -69,6 +138,7 @@ class TaCacheManager:
     
     def get_icon_and_tooltip(self, model_or_raster_name):
         """Get the icon and tooltip for a model or raster."""
+        self._ensure_initialized()
         if model_or_raster_name is not None:
             if model_or_raster_name in self.get_available_rasters():
                 raster_name = model_or_raster_name
@@ -85,6 +155,7 @@ class TaCacheManager:
     
     def get_custom_model_names(self):
         """Return the names of locally available models as a list."""
+        self._ensure_initialized()
         local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
         for model in self.model_list:
             if model in local_models:
@@ -93,6 +164,7 @@ class TaCacheManager:
         
     def get_available_models(self, required_layers=[]):
         """Return a list of available models, filtering by required layers."""
+        self._ensure_initialized()
         available_models = self.display_model_list.copy()
         local_models = self.get_custom_model_names()
         available_models.extend(local_models)
@@ -104,6 +176,7 @@ class TaCacheManager:
     
     def is_model_available_locally(self, display_model_name):
         """Check if a model is available locally."""
+        self._ensure_initialized()
         local_models = self.pm_manager.get_local_available_model_names(self.model_data_dir)
         index = self.display_model_list.index(display_model_name)
         model_name = self.model_list[index]
@@ -111,6 +184,7 @@ class TaCacheManager:
     
     def is_model_custom(self, model_name):
         """Check if a model is a custom model."""
+        self._ensure_initialized()
         custom_models = self.get_custom_model_names()
         return model_name in custom_models
     
@@ -123,6 +197,7 @@ class TaCacheManager:
     
     def get_model(self, display_model_name):
         """Get the model object by its display name."""
+        self._ensure_initialized()
         local_models = self.get_custom_model_names()
         if display_model_name in local_models:
             model_name = display_model_name
@@ -187,6 +262,7 @@ class TaCacheManager:
     
     def get_available_rasters(self):
         """Return a list of available rasters. When offline, only return locally available ones."""
+        self._ensure_initialized()
         if not self.raster_manager.rasters:
             return [name for name in self.available_rasters
                     if self.is_raster_available_locally(name)]
@@ -194,6 +270,7 @@ class TaCacheManager:
     
     def is_raster_available_locally(self, raster_name):
         """Check if a raster is already downloaded."""
+        self._ensure_initialized()
         raster_name = self.available_rasters[raster_name]
         if raster_name not in self.raster_manager.rasters:
             raster_dir = os.path.join(self.raster_data_dir, raster_name)
@@ -209,6 +286,7 @@ class TaCacheManager:
         return not downloader.check_if_file_need_update()
     
     def download_raster(self, raster, feedback=None):
+        self._ensure_initialized()
         if feedback: self.pmm_logger.addHandler(feedback.log_handler)
         raster = self.available_rasters[raster]
         if raster not in self.raster_manager.rasters:
@@ -261,6 +339,7 @@ class TaCacheManager:
     
     def delete_model(self, model_name):
         """Delete a model from the local storage."""
+        self._ensure_initialized()
         model = self.get_model(model_name)
         model.purge()
         

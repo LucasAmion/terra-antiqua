@@ -45,8 +45,11 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         class IconItemDelegate(QtWidgets.QStyledItemDelegate):
             def paint(self, painter, option, index):
                 model_name = index.data(QtCore.Qt.DisplayRole)
-                symbol, _ = cache_manager.get_icon_and_tooltip(model_name)
-                text = f"{model_name} {symbol}"
+                if cache_manager.is_initialized:
+                    symbol, _ = cache_manager.get_icon_and_tooltip(model_name)
+                    text = f"{model_name} {symbol}"
+                else:
+                    text = model_name
                 
                 # Draw background if selected
                 if option.state & QtWidgets.QStyle.State_Selected:
@@ -73,12 +76,18 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
             def helpEvent(self, event, view, option, index):
                 if event.type() == QtCore.QEvent.ToolTip:
                     model_name = index.data(QtCore.Qt.DisplayRole)
-                    _, tip = cache_manager.get_icon_and_tooltip(model_name)
+                    if cache_manager.is_initialized:
+                        _, tip = cache_manager.get_icon_and_tooltip(model_name)
+                    else:
+                        tip = ""
                     QtWidgets.QToolTip.showText(event.globalPos(), tip)
                     return True
                 return super().helpEvent(event, view, option, index)
 
-        model_list = QtCore.QStringListModel(cache_manager.get_available_models())
+        if cache_manager.is_initialized:
+            model_list = QtCore.QStringListModel(cache_manager.get_available_models())
+        else:
+            model_list = QtCore.QStringListModel(["Loading models..."])
         model_list_view = QtWidgets.QListView()
         model_list_view.setModel(model_list)
         model_list_view.setEditTriggers(QtWidgets.QListView.NoEditTriggers)
@@ -324,6 +333,8 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         
         # Function to update the model details when a model is selected
         def on_selection_changed(selected, deselected):
+            if not cache_manager.is_initialized:
+                return
             name_field.hide()
             description_text.setReadOnly(True)
             
@@ -681,7 +692,10 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         rasters_groupbox = QgsCollapsibleGroupBox("Present day raster files", vertical_splitter)
         rasters_groupbox.setLayout(QtWidgets.QVBoxLayout())
         
-        raster_list = QtCore.QStringListModel(cache_manager.get_available_rasters())
+        if cache_manager.is_initialized:
+            raster_list = QtCore.QStringListModel(cache_manager.get_available_rasters())
+        else:
+            raster_list = QtCore.QStringListModel(["Loading rasters..."])
         raster_list_view = QtWidgets.QListView()
         raster_list_view.setModel(raster_list)
         raster_list_view.setEditTriggers(QtWidgets.QListView.NoEditTriggers)
@@ -706,6 +720,8 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
         rasters_groupbox.layout().addLayout(raster_buttons_layout)
         
         def on_raster_selection_changed(selected, deselected):
+            if not cache_manager.is_initialized:
+                return
             if selected.indexes():
                 index = selected.indexes()[0]
                 raster_name = raster_list.data(index, QtCore.Qt.ItemDataRole.DisplayRole)
@@ -790,8 +806,17 @@ class TaManageInputFilesDlg(QtWidgets.QDialog):
                 QtWidgets.QMessageBox.critical(self, "Error", str(e))
         open_raster_button.clicked.connect(on_open_raster_button_pressed)
         
-        if cache_manager.get_available_rasters() == []:
-            rasters_groupbox.hide()
+        if cache_manager.is_initialized:
+            if cache_manager.get_available_rasters() == []:
+                rasters_groupbox.hide()
+        
+        if not cache_manager.is_initialized:
+            def _deferred_populate():
+                model_list.setStringList(cache_manager.get_available_models())
+                raster_list.setStringList(cache_manager.get_available_rasters())
+                if cache_manager.get_available_rasters() == []:
+                    rasters_groupbox.hide()
+            cache_manager.signals.initialized.connect(_deferred_populate)
         
         vertical_splitter.setSizes([400, 200])
         
