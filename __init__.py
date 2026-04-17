@@ -25,10 +25,16 @@
 
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
-    """Loads TerraAntiquaStub to lazy-load dependencies.
+    """Loads TerraAntiqua, falling back to TerraAntiquaStub if deps are missing.
 
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    from .core.terra_antiqua_stub import TerraAntiquaStub
-    return TerraAntiquaStub(iface)
+    try:
+        from .core.terra_antiqua import TerraAntiqua
+        from .core.cache_manager import cache_manager
+        cache_manager.start_background_init()
+        return TerraAntiqua(iface)
+    except Exception:
+        from .core.terra_antiqua_stub import TerraAntiquaStub
+        return TerraAntiquaStub(iface)
