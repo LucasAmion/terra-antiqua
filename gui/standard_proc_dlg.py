@@ -34,7 +34,7 @@ class TaStandardProcessingDlg(TaBaseDialog):
 
     def defineParameters(self):
         self.processingTypeBox = self.addParameter(
-            QComboBox, "How would you like to process the input DEM?")
+            QComboBox, "How would you like to process the input layer?")
         self.processingTypeBox.addItems(["Fill gaps",
                                          "Copy/Paste raster",
                                          "Smooth raster",
