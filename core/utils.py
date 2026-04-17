@@ -1451,6 +1451,54 @@ def clipArrayToExtent(raster, extent):
     raster.lons = raster.lons[np.min(lon_indices):np.max(lon_indices)+1]
     raster.lats = raster.lats[np.min(lat_indices):np.max(lat_indices)+1]
     
+def partitionIntoPlates(partitioning_features,
+                        rotation_model,
+                        features_to_partition,
+                        reconstruction_time,
+                        partition_method,
+                        output_path):
+    """Partitions features into plates using pygplates.partition_into_plates.
+
+    :param partitioning_features: Path to the partitioning features file (e.g. static polygons).
+    :type partitioning_features: str or list of str.
+    :param rotation_model: Path to the rotation model file(s).
+    :type rotation_model: str or list of str.
+    :param features_to_partition: Path to the features file to be partitioned.
+    :type features_to_partition: str.
+    :param reconstruction_time: The geological time to reconstruct/resolve the partitioning features to.
+    :type reconstruction_time: float.
+    :param partition_method: How the features are to be partitioned. One of
+        'Split into plates' or 'Most overlapping plate'.
+    :type partition_method: str.
+    :param output_path: Path to save the output shapefile.
+    :type output_path: str.
+
+    :return: Path to the output file.
+    :rtype: str.
+    """
+    import pygplates
+
+    method_map = {
+        'Split into plates': pygplates.PartitionMethod.split_into_plates,
+        'Most overlapping plate': pygplates.PartitionMethod.most_overlapping_plate,
+    }
+    pygplates_method = method_map.get(partition_method,
+                                       pygplates.PartitionMethod.most_overlapping_plate)
+
+    partitioned_features = pygplates.partition_into_plates(
+        partitioning_features,
+        rotation_model,
+        features_to_partition,
+        reconstruction_time=reconstruction_time,
+        partition_method=pygplates_method,
+    )
+
+    feature_collection = pygplates.FeatureCollection(partitioned_features)
+    feature_collection.write(output_path)
+
+    return output_path
+
+
 def convertAgeToDepth(ocean_age, reconstruction_time, age_raster_time):
     # create an empty array to store calculated ocean depth from age.
     ocean_depth = np.empty(ocean_age.shape)

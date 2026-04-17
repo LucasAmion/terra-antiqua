@@ -347,7 +347,8 @@ class TaBaseDialog(TaTemplateDialog):
                 ('TaReconstructTopography', 'reconstruct_topography'),
                 ('TaReconstructAgegrid', 'reconstruct_agegrid'),
                 ('TaReconstructVectorLayersDlg', 'reconstruct_vector_layers'),
-                ('TaChangeMapSymbology', 'change_symbology')
+                ('TaChangeMapSymbology', 'change_symbology'),
+                ('TaAssignPlateIDs', 'assign_plate_ids')
                 ]
         for class_name, file_name in files:
             if class_name    == self.dlg_name:

@@ -116,6 +116,7 @@ class TaBaseAlgorithm(QThread):
             ('TaCalculateBathymetry', 'PaleoDEM_with_calculated_bathymetry.tif', 'geotiff'),
             ('TaReconstructRasters', 'PaleoDEM_reconstructed.nc', 'netcdf'),
             ('TaReconstructVectorLayers', 'Vector_layer_reconstructed.shp', 'vector'),
+            ('TaAssignPlateIDs', 'Assigned_plate_IDs.shp', 'vector'),
         ]
 
         temp_file_name = None

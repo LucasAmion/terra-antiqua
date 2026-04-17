@@ -15,8 +15,10 @@ from.utils import (
     fillNoDataWithAFixedValue,
     rasterSmoothing,
     rasterSmoothingInPolygon,
-    convertAgeToDepth
+    convertAgeToDepth,
+    partitionIntoPlates
 )
+from .cache_manager import cache_manager
 
 from qgis.core import (
     QgsVectorLayer,
@@ -29,6 +31,7 @@ from qgis.core import (
 import os
 import numpy as np
 from osgeo import gdal, gdalconst
+from PyQt5 import QtCore
 
 class TaStandardProcessing(TaBaseAlgorithm):
 
@@ -47,7 +50,8 @@ class TaStandardProcessing(TaBaseAlgorithm):
                                  "TaIsostaticCompensation"),
                                 ("Set new sea level", "TaSetSeaLevel"),
                                 ("Calculate bathymetry", "TaCalculateBathymetry"),
-                                ("Change map symbology", "TaChangeMapSymbology")]
+                                ("Change map symbology", "TaChangeMapSymbology"),
+                                ("Assign plate IDs", "TaAssignPlateIDs")]
         for alg, name in processing_alg_names:
             if alg == self.processing_type:
                 self.setName(name)
@@ -68,6 +72,8 @@ class TaStandardProcessing(TaBaseAlgorithm):
             self.calculateBathymetry()
         elif self.processing_type == "Change map symbology":
             self.changeMapSymbology()
+        elif self.processing_type == "Assign plate IDs":
+            self.assignPlateIDs()
 
     def fillGaps(self):
         if not self.killed:
@@ -857,4 +863,70 @@ class TaStandardProcessing(TaBaseAlgorithm):
         except Exception as e:
             self.feedback.warning(
                 f"Changing map symbology failed due to the following exception: {e}")
+            self.finished.emit(False, '')
+
+    def assignPlateIDs(self):
+        """Assigns plate IDs to features using pygplates.partition_into_plates."""
+        if not self.killed:
+            input_layer = self.dlg.baseTopoBox.currentLayer()
+            if not input_layer:
+                self.feedback.error("No input layer selected.")
+                self.kill()
+
+        if not self.killed:
+            model_name = self.dlg.assignPlateIDsModelName.currentData(
+                QtCore.Qt.UserRole)
+            reconstruction_time = self.dlg.assignPlateIDsTime.spinBox.value()
+            partition_method = self.dlg.assignPlateIDsMethodBox.currentText()
+            features_to_partition = input_layer.source().split("|")[0]
+
+            self.feedback.info(f"Input layer: {input_layer.name()}.")
+            self.feedback.info(f"Rotation model: {model_name}.")
+            self.feedback.info(f"Time of the input layer: {reconstruction_time} Ma.")
+            self.feedback.info(f"Partition method: {partition_method}.")
+            self.feedback.progress += 10
+
+        if not self.killed:
+            try:
+                self.feedback.info(f"Downloading {model_name} rotation model if needed...")
+                rotation_model = cache_manager.download_model(model_name, self.feedback)
+            except Exception as e:
+                self.feedback.error(
+                    f"Error downloading rotation model: {e}")
+                self.kill()
+
+        if not self.killed:
+            try:
+                self.feedback.info("Downloading static polygons if needed...")
+                static_polygons = cache_manager.get_layer(
+                    model_name, "Static Polygons", self.feedback)
+            except Exception as e:
+                self.feedback.error(
+                    f"Error downloading static polygons: {e}")
+                self.kill()
+
+        if not self.killed:
+            try:
+                self.feedback.info("Partitioning features into plates...")
+                if os.path.exists(self.out_file_path):
+                    os.unlink(self.out_file_path)
+                partitionIntoPlates(
+                    static_polygons,
+                    rotation_model,
+                    features_to_partition,
+                    reconstruction_time,
+                    partition_method,
+                    self.out_file_path
+                )
+                self.feedback.info("Plate ID assignment finished.")
+                self.feedback.progress += 70
+            except Exception as e:
+                self.feedback.error(
+                    f"Error during plate ID assignment: {e}")
+                self.kill()
+
+        if not self.killed:
+            self.feedback.progress = 100
+            self.finished.emit(True, self.out_file_path)
+        else:
             self.finished.emit(False, '')

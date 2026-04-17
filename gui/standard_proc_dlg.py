@@ -18,11 +18,13 @@ from qgis.core import QgsMapLayerProxyModel
 from .base_dialog import TaBaseDialog
 from .widgets import (
     TaRasterLayerComboBox,
+    TaMapLayerComboBox,
     TaCheckBox,
     TaSpinBox,
     TaVectorLayerComboBox,
     TaColorSchemeWidget
 )
+from ..core.cache_manager import cache_manager
 
 
 class TaStandardProcessingDlg(TaBaseDialog):
@@ -31,6 +33,7 @@ class TaStandardProcessingDlg(TaBaseDialog):
         super(TaStandardProcessingDlg, self).__init__(parent)
         self.defineParameters()
         self.processingTypeBox.currentTextChanged.connect(self.reloadHelp)
+        self.reloadHelp()
 
     def defineParameters(self):
         self.processingTypeBox = self.addParameter(
@@ -41,10 +44,15 @@ class TaStandardProcessingDlg(TaBaseDialog):
                                          "Isostatic compensation",
                                          "Set new sea level",
                                          "Calculate bathymetry",
-                                         "Change map symbology"])
-        self.baseTopoBox = self.addMandatoryParameter(TaRasterLayerComboBox,
-                                                      "Raster to be modified:",
+                                         "Change map symbology",
+                                         "Assign plate IDs"])
+        self.baseTopoBox = self.addMandatoryParameter(TaMapLayerComboBox,
+                                                      "Input layer:",
                                                       "TaMapLayerComboBox")
+        self._rasterProcessingTypes = ["Fill gaps", "Copy/Paste raster",
+                                        "Smooth raster", "Isostatic compensation",
+                                        "Set new sea level", "Calculate bathymetry",
+                                        "Change map symbology"]
         # Parameters for filling the gaps
         self.fillingTypeBox = self.addVariantParameter(QComboBox,
                                                        "Fill gaps",
@@ -199,12 +207,99 @@ class TaStandardProcessingDlg(TaBaseDialog):
                                                               "Add custom color palette")
         self.addColorPaletteButton.pressed.connect(self.addColorPalette)
 
+        # Parameters for Assign plate IDs
+        self.assignPlateIDsModelName = self.addVariantParameter(
+            QComboBox, "Assign plate IDs", "Name of rotation model:")
+        self.assignPlateIDsModelName.setStyleSheet("combobox-popup: 0;")
+        model_list = cache_manager.get_available_models(
+            required_layers=["Static Polygons"])
+        for model in model_list:
+            self.assignPlateIDsModelName.addItem(model)
+            symbol, tooltip = cache_manager.get_icon_and_tooltip(model)
+            display_text = f"{model} {symbol}"
+            index = self.assignPlateIDsModelName.count() - 1
+            self.assignPlateIDsModelName.setItemData(
+                index, display_text, QtCore.Qt.DisplayRole)
+            self.assignPlateIDsModelName.setItemData(
+                index, tooltip, QtCore.Qt.ToolTipRole)
+            self.assignPlateIDsModelName.setItemData(
+                index, model, QtCore.Qt.UserRole)
+
+        self.assignPlateIDsTime = self.addVariantParameter(
+            TaSpinBox, "Assign plate IDs", "Time of the input layer (in Ma):")
+        self.assignPlateIDsTime.setDataType("integer")
+        self.assignPlateIDsTime.spinBox.setMinimum(0)
+        self.assignPlateIDsTime.spinBox.setMaximum(20000)
+
+        self.assignPlateIDsMethodBox = self.addVariantParameter(
+            QComboBox, "Assign plate IDs", "Partition method:")
+        self.assignPlateIDsMethodBox.addItems(
+            ["Split into plates", "Most overlapping plate"])
+
         self.fillDialog()
         self.showVariantWidgets(self.processingTypeBox.currentText())
         self.processingTypeBox.currentTextChanged.connect(
             self.showVariantWidgets)
+        self.processingTypeBox.currentTextChanged.connect(
+            self.configureInputLayer)
+        self.configureInputLayer(self.processingTypeBox.currentText())
         self.group_box.collapsedStateChanged.connect(
             lambda: self.showAdvancedWidgets(self.processingTypeBox.currentText()))
+
+    def configureInputLayer(self, processing_type):
+        """Reconfigures baseTopoBox filter, label, open button and output file filter
+        based on the selected processing type."""
+        # baseTopoBox is the inner cmb; its parent() is the TaMapLayerComboBox widget
+        container = self.baseTopoBox.parent()
+        # Disconnect previous open button connections
+        try:
+            container.openButton.pressed.disconnect()
+        except (TypeError, RuntimeError):
+            pass
+        if processing_type == "Assign plate IDs":
+            self.baseTopoBox.setFilters(QgsMapLayerProxyModel.VectorLayer)
+            if hasattr(container, 'setLabel'):
+                container.setLabel("Input layer: *")
+            container.openButton.pressed.connect(self._openVectorFromDisk)
+            try:
+                self.outputPath.setFilter('*.shp')
+            except Exception:
+                pass
+        else:
+            self.baseTopoBox.setFilters(QgsMapLayerProxyModel.RasterLayer)
+            if hasattr(container, 'setLabel'):
+                container.setLabel("Raster to be modified: *")
+            container.openButton.pressed.connect(self._openRasterFromDisk)
+            try:
+                self.outputPath.setFilter('*.tif;;*.tiff')
+            except Exception:
+                pass
+
+    def _openRasterFromDisk(self):
+        """Opens a file dialog to select a raster layer from disk."""
+        from qgis.core import QgsRasterLayer, QgsProject
+        fd = QFileDialog()
+        filt = "Raster files (*.jpg *.tif *.grd *.nc *.png *.tiff)"
+        fname, _ = fd.getOpenFileName(
+            caption='Select a raster layer', directory=None, filter=filt)
+        if fname:
+            name, _ = os.path.splitext(os.path.basename(fname))
+            rlayer = QgsRasterLayer(fname, name, 'gdal')
+            QgsProject.instance().addMapLayer(rlayer)
+            self.baseTopoBox.setLayer(rlayer)
+
+    def _openVectorFromDisk(self):
+        """Opens a file dialog to select a vector layer from disk."""
+        from qgis.core import QgsVectorLayer, QgsProject
+        fd = QFileDialog()
+        filt = "Vector files (*.shp *.gpml *.gpmlz *.geojson *.json *.gpkg *.gmt)"
+        fname, _ = fd.getOpenFileName(
+            caption='Select a vector layer', directory=None, filter=filt)
+        if fname:
+            name, _ = os.path.splitext(os.path.basename(fname))
+            vlayer = QgsVectorLayer(fname, name, 'ogr')
+            QgsProject.instance().addMapLayer(vlayer)
+            self.baseTopoBox.setLayer(vlayer)
 
     def setFieldsInLayer(self):
         self.smFactorSpinBox2.initOverrideButton("Smoothing factor", "Smoothing factor for each mask",
@@ -323,7 +418,8 @@ class TaStandardProcessingDlg(TaBaseDialog):
                                  "TaIsostaticCompensation"),
                                 ("Set new sea level", "TaSetSeaLevel"),
                                 ("Calculate bathymetry", "TaCalculateBathymetry"),
-                                ("Change map symbology", "TaChangeMapSymbology")]
+                                ("Change map symbology", "TaChangeMapSymbology"),
+                                ("Assign plate IDs", "TaAssignPlateIDs")]
         for alg, name in processing_alg_names:
             if self.processingTypeBox.currentText() == alg:
                 self.setDialogName(name)

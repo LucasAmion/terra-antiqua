@@ -1,0 +1,46 @@
+<!-- Copyright (C) 2021 by Jovid Aminov, Diego Ruiz, Guillaume Dupont-Nivet
+ Terra Antiqua is a plugin for the software QGis that deals with the reconstruction of paleogeography.
+Full copyright notice in file: terra_antiqua.py -->
+
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="StyleSheet.css">
+    </head>
+    <title> Assign plate IDs </title>
+    
+    <body>
+        <p>
+        <b><i>How would you like to process the input layer:</i></b><br/>
+        Choose the processing tool you want to use.
+        <p>
+<b>Assign plate IDs</b> partitions features into tectonic plates and assigns reconstruction plate IDs using
+<i>pygplates.partition_into_plates</i>. This is particularly useful for manually created vector layers, as it assigns the necessary
+plate IDs so they can later be used in the <b>Reconstruct vector layers</b> tool.
+<p>
+<b><i>Input layer:</i></b><br/>
+Choose a vector layer containing the features you want to assign plate IDs to.
+<p>
+<b><i>Name of rotation model:</i></b><br/>
+Select the plate reconstruction model to use. The rotation model and its associated static polygons
+will be downloaded automatically if not already cached locally.
+<p>
+<b><i>Time of the input layer (in Ma):</i></b><br/>
+The geological time (in millions of years ago) that the input features represent. The partitioning
+polygons will be reconstructed to this time before testing for overlap with the input features.
+<p>
+<b><i>Partition method:</i></b><br/>
+<b>Split into plates</b> &mdash; splits each feature into the partitioning plates it overlaps.
+If a feature overlaps two plates, it will be cloned twice, each clone receiving the geometry
+within the respective plate.<br/>
+<b>Most overlapping plate</b> &mdash; assigns each feature to the single plate that most overlaps
+its geometry, without splitting. The feature geometry is left unmodified.
+
+<p>
+<b><i>Output file path:</i></b><br/>
+If there is no path specified here, the file will be created in the temporary folder. The full path will be shown in the <b>Log</b> tab and the result will be loaded to the map canvas.
+
+<div><b>Warning:</b> Please avoid using these characters in the file name, as they might cause processing errors: <i>( ) / - % $ @ #</i><br/>
+    <b>Note:</b> If this tool is used repetitively with no path specified, previous results will be overwritten. To avoid this, specify a different path (or filename) each time</div>
+</p>
+    </body>
+    </html>
