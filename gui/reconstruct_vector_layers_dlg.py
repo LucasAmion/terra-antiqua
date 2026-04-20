@@ -21,17 +21,6 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         """ Adds parameters to a list object that is used by the TaBaseDialog
         class to create widgets and place them parameters tab.
         """
-        # Layer Type:
-        self.layerType = self.addMandatoryParameter(QComboBox,
-                                                    "Layer to reconstruct:")
-        self.layerType.addItems(cache_manager.possible_layers)
-        self.layerType.removeItem(0) # Topologies are not supported for reconstruction
-        self.layerType.addItem("Local Layer")
-                
-        self.localLayer = self.addMandatoryParameter(TaVectorLayerComboBox,
-                                                     "Select a local vector layer:")
-        self.localLayer.cmb.setLayerType('All')
-        
         # Rotation Model:
         self.modelName = self.addMandatoryParameter(QComboBox,
                                                     "Name of rotation model:")
@@ -39,12 +28,8 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         def set_available_models():
             if not cache_manager.is_initialized:
                 return
-            layer_type = self.layerType.currentText()
             self.modelName.clear()
-            if layer_type == "Local Layer":
-                model_list = cache_manager.get_available_models()
-            else:
-                model_list = cache_manager.get_available_models(required_layers=[layer_type])
+            model_list = cache_manager.get_available_models()
             for model in model_list:
                 self.modelName.addItem(model)
                 
@@ -57,7 +42,6 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
                 self.modelName.setItemData(index, tooltip, QtCore.Qt.ToolTipRole)
                 self.modelName.setItemData(index, model, QtCore.Qt.UserRole)
         self._set_available_models = set_available_models
-        self.layerType.currentTextChanged.connect(set_available_models)
         if cache_manager.is_initialized:
             set_available_models()
         else:
@@ -66,7 +50,35 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
             def _deferred_populate():
                 self.modelName.setEnabled(True)
                 self._set_available_models()
+                self._set_available_layers()
             cache_manager.signals.initialized.connect(_deferred_populate)
+        
+        # Layer Type:
+        self.layerType = self.addMandatoryParameter(QComboBox,
+                                                    "Layer to reconstruct:")
+        def set_available_layers():
+            if not cache_manager.is_initialized:
+                return
+            model_name = self.modelName.currentData(QtCore.Qt.UserRole)
+            previous = self.layerType.currentText()
+            self.layerType.clear()
+            # Topologies are not supported for reconstruction, skip index 0
+            for layer in cache_manager.possible_layers[1:]:
+                if model_name and cache_manager.is_layer_available(layer, model_name):
+                    self.layerType.addItem(layer)
+            self.layerType.addItem("Local Layer")
+            # Restore previous selection if still available
+            idx = self.layerType.findText(previous)
+            if idx >= 0:
+                self.layerType.setCurrentIndex(idx)
+        self._set_available_layers = set_available_layers
+        self.modelName.currentIndexChanged.connect(set_available_layers)
+        if cache_manager.is_initialized:
+            set_available_layers()
+                
+        self.localLayer = self.addMandatoryParameter(TaVectorLayerComboBox,
+                                                     "Select a local vector layer:")
+        self.localLayer.cmb.setLayerType('All')
         
         # Reconstruction time:
         self.reconstruction_time = self.addMandatoryParameter(TaSpinBox, "Reconstruction time (in Ma):")
