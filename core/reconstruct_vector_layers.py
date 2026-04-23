@@ -23,6 +23,9 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
             if not local_layer:
                 self.feedback.error("No input layer selected.")
                 self.kill()
+            input_time = self.dlg.inputTime.spinBox.value()
+        else:
+            input_time = 0
         reconstruction_time = self.dlg.reconstruction_time.spinBox.value()
         output_path = self.dlg.outputPath.filePath()
         if not output_path:
@@ -64,9 +67,18 @@ class TaReconstructVectorLayers(TaBaseAlgorithm):
         # Reconstructing vector layer to desired age
         if not self.killed:
             try:
-                self.feedback.info("Starting reconstruction...")
-                pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
-                self.feedback.info("Reconstruction finished.")
+                if layer_type == "Local Layer":
+                    self.feedback.info("Starting reconstruction...")
+                    features = pygplates.FeatureCollection(layer)
+                    self.feedback.info(f"Reverse-reconstructing from {input_time} Ma to present day...")
+                    pygplates.reverse_reconstruct(features, rotation_model, input_time)
+                    self.feedback.info(f"Reconstructing to {reconstruction_time} Ma...")
+                    pygplates.reconstruct(features, rotation_model, output_path, reconstruction_time)
+                    self.feedback.info("Reconstruction finished.")
+                else:
+                    self.feedback.info("Starting reconstruction...")
+                    pygplates.reconstruct(layer, rotation_model, output_path, reconstruction_time)
+                    self.feedback.info("Reconstruction finished.")
                 self.feedback.progress += 30
             except Exception:
                 self.feedback.error("There was an error while reconstructing layer to the desired age.")

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QComboBox
 from PyQt5 import QtCore
 from qgis.gui import QgsDoubleSpinBox, QgsFileWidget
 from .base_dialog import TaBaseDialog
-from .widgets import TaSpinBox, TaCheckBox, TaRasterLayerComboBox
+from .widgets import TaSpinBox, TaCheckBox, TaRasterLayerComboBox, TaComposedParameter
 from ..core.cache_manager import cache_manager
 import tempfile
 import os
@@ -112,8 +112,13 @@ class TaReconstructRastersDlg(TaBaseDialog):
                 _on_cache_initialized()
             cache_manager.signals.initialized.connect(_deferred_populate)
         
-        self.localLayer = self.addVariantParameter(TaRasterLayerComboBox, "Topography",
-                                                   "Select a local raster layer:")
+        self.localLayerGroup = self.addVariantParameter(TaComposedParameter, "Topography")
+        self.localLayer = TaRasterLayerComboBox("Select a local raster layer:")
+        self.localLayerGroup.addParameter(self.localLayer, stretch=2)
+        self.inputTime = TaSpinBox("Time of the input raster (in Ma):")
+        self.inputTime.setDataType("integer")
+        self.inputTime.spinBox.setMinimum(0)
+        self.localLayerGroup.addParameter(self.inputTime, stretch=1)
         
         ## Create sequence:
         self.createSequence = self.addVariantParameter(TaCheckBox, "Topography",
@@ -295,9 +300,9 @@ class TaReconstructRastersDlg(TaBaseDialog):
         # Hide local raster widget if it is not selected
         def input_raster_changed():
             if self.inputRaster.currentText() == "Local":
-                self.localLayer.show()
+                self.localLayerGroup.show()
             else:
-                self.localLayer.hide()
+                self.localLayerGroup.hide()
         self.inputRaster.currentTextChanged.connect(input_raster_changed)
         
         # Hide topoStartTime and topoTimeStep if not creating a sequence

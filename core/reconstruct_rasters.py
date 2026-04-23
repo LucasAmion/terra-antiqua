@@ -47,6 +47,9 @@ class TaReconstructRasters(TaBaseAlgorithm):
                 if not local_layer:
                     self.feedback.error("No input layer selected.")
                     self.kill()
+                input_time = self.dlg.inputTime.spinBox.value()
+            else:
+                input_time = 0.0
             resampling = self.dlg.resampling.isChecked()
             resampling_resolution = self.dlg.resampling_resolution.value()
             interpolationMethod = self.dlg.interpolationMethod.currentIndex()
@@ -73,7 +76,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
             # Downloading rotation model files
             if not self.killed:
                 try:
-                    if reconstruction_time > 0:
+                    if reconstruction_time != input_time or save_multiple_rasters:
                         self.feedback.info(f"Downloading {model_name} model if needed...")
                         rotation_model = cache_manager.download_model(model_name, self.feedback)
                         cache_manager.download_all_layers(model_name, self.feedback)
@@ -106,7 +109,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                     data = data.GetRasterBand(1).ReadAsArray()
                     input_extent = local_layer.extent()
                     input_extent = (input_extent.xMinimum(), input_extent.xMaximum(), input_extent.yMaximum(), input_extent.yMinimum())
-                    topo_raster = gplately.Raster(data=data, extent=input_extent)
+                    topo_raster = gplately.Raster(data=data, extent=input_extent, time=input_time)
                     self.feedback.progress += 10
                 except Exception:
                     self.feedback.error("There was an error while reading the input raster.")
@@ -137,7 +140,7 @@ class TaReconstructRasters(TaBaseAlgorithm):
                                                     partitioning_features=partitioning_features)
                             rasters.append(reconstructed_raster)
                     else:
-                        if reconstruction_time > 0:
+                        if reconstruction_time != input_time:
                             topo_raster.plate_reconstruction = model
                             partitioning_features = cobs if cobs else static_polygons
                             self.feedback.info("Starting reconstruction...")

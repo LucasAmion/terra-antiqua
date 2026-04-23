@@ -5,7 +5,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QComboBox
 from .base_dialog import TaBaseDialog
-from .widgets import TaSpinBox, TaVectorLayerComboBox
+from .widgets import TaSpinBox, TaVectorLayerComboBox, TaComposedParameter
 from ..core.cache_manager import cache_manager
 import tempfile
 import os
@@ -76,9 +76,14 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         if cache_manager.is_initialized:
             set_available_layers()
                 
-        self.localLayer = self.addMandatoryParameter(TaVectorLayerComboBox,
-                                                     "Select a local vector layer:")
+        self.localLayerGroup = self.addMandatoryParameter(TaComposedParameter)
+        self.localLayer = TaVectorLayerComboBox("Select a local vector layer: *")
         self.localLayer.cmb.setLayerType('All')
+        self.localLayerGroup.addParameter(self.localLayer, stretch=2)
+        self.inputTime = TaSpinBox("Time of the input layer (in Ma):")
+        self.inputTime.setDataType("integer")
+        self.inputTime.spinBox.setMinimum(0)
+        self.localLayerGroup.addParameter(self.inputTime, stretch=1)
         
         # Reconstruction time:
         self.reconstruction_time = self.addMandatoryParameter(TaSpinBox, "Reconstruction time (in Ma):")
@@ -99,9 +104,9 @@ class TaReconstructVectorLayersDlg(TaBaseDialog):
         # Hide local layer widget if it is not selected
         def input_layer_changed():
             if self.layerType.currentText() == "Local Layer":
-                self.localLayer.show()
+                self.localLayerGroup.show()
             else:
-                self.localLayer.hide()
+                self.localLayerGroup.hide()
         self.layerType.currentTextChanged.connect(input_layer_changed)
         input_layer_changed()
         
