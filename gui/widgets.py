@@ -389,6 +389,27 @@ class TaExpressionWidget(QtWidgets.QWidget):
         else:
             self.overrideButton.init(0, QgsProperty(), definition)
 
+class TaComposedParameter(QtWidgets.QWidget):
+    """A container widget that lays out multiple child parameter widgets horizontally."""
+    def __init__(self, label=None):
+        super().__init__()
+        self._vlayout = QtWidgets.QVBoxLayout()
+        self._vlayout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
+        if label:
+            self.label = QtWidgets.QLabel(label)
+            self._vlayout.addWidget(self.label)
+        self._hlayout = QtWidgets.QHBoxLayout()
+        self._hlayout.setContentsMargins(QtCore.QMargins(0, 0, 0, 0))
+        self._vlayout.addLayout(self._hlayout)
+        self.setLayout(self._vlayout)
+        self._children = []
+
+    def addParameter(self, widget, stretch=0):
+        self._hlayout.addWidget(widget, stretch)
+        self._children.append(widget)
+        return widget
+
+
 class TaColorSchemeWidget(QtWidgets.QComboBox):
     def __init__(self, parent=None):
         super().__init__(parent)
